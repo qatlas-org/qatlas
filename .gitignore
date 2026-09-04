@@ -1,1 +1,42 @@
-/.idea/
+# ===== Maven (all modules: backend, api-client, frontend, qatlas-ui) =====
+target/
+**/target/
+*.class
+
+# ===== Node / npm (frontend, qatlas-ui) =====
+node/
+**/node/
+node_modules/
+**/node_modules/
+dist/
+**/dist/
+build/
+**/build/
+npm-debug.log*
+package-lock.json.bak
+
+# ===== IDE (IntelliJ) =====
+.idea/
+*.iml
+*.ipr
+*.iws
+out/
+
+# ===== IDE (VS Code) =====
+.vscode/
+
+# ===== OS junk =====
+.DS_Store
+Thumbs.db
+
+# ===== Logs =====
+*.log
+logs/
+
+# ===== Local secrets / machine-specific config =====
+# (matches the app.data.root-path env-var pattern from application.yml —
+#  never commit real admin credentials or token secrets)
+.env
+.env.local
+application-local.yml
+application-local.properties
