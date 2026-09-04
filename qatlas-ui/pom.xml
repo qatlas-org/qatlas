@@ -40,8 +40,8 @@
                         </goals>
                         <configuration>
                             <!-- Vite 8 / current deps require a recent Node LTS -->
-                            <nodeVersion>v20.18.1</nodeVersion>
-                            <npmVersion>10.8.2</npmVersion>
+                            <nodeVersion>v22.14.0</nodeVersion>
+                            <npmVersion>10.9.2</npmVersion>
                         </configuration>
                     </execution>
                     <execution>
@@ -50,7 +50,7 @@
                             <goal>npm</goal>
                         </goals>
                         <configuration>
-                            <arguments>ci</arguments>
+                            <arguments>install</arguments>
                         </configuration>
                     </execution>
                     <execution>
