@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<title>LT QA | Execution Dashboard</title>
+	<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='30' fill='%231a2332'/%3E%3Cpath d='M32 4 A28 28 0 0 1 60 32' fill='none' stroke='%2322c55e' stroke-width='8' stroke-linecap='round'/%3E%3Cpath d='M60 32 A28 28 0 0 1 32 60' fill='none' stroke='%2322c55e' stroke-width='8' stroke-linecap='round'/%3E%3Cpath d='M32 60 A28 28 0 0 1 8 18' fill='none' stroke='%23ef4444' stroke-width='8' stroke-linecap='round'/%3E%3Cpath d='M8 18 A28 28 0 0 1 32 4' fill='none' stroke='%23f59e0b' stroke-width='8' stroke-linecap='round'/%3E%3Ctext x='32' y='38' text-anchor='middle' font-family='Arial,sans-serif' font-weight='700' font-size='15' fill='%23ffffff'%3EQA%3C/text%3E%3C/svg%3E">
+
+	<link href="Bootstrap/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+	<link href="Bootstrap/vendor/metisMenu/metisMenu.min.css" rel="stylesheet">
+	<link href="Bootstrap/dist/css/sb-admin-2.css" rel="stylesheet">
+	<link href="Bootstrap/vendor/morrisjs/morris.css" rel="stylesheet">
+	<link href="Bootstrap/vendor/font-awesome/css/font-awesome.min.css" rel="stylesheet" type="text/css">
+	<link rel="stylesheet" type="text/css" href="src/jquery.jqplot.css" />
+	<link href="Highchart/CustomisedStyleSheet.css" rel="stylesheet">
+	<link href="Scripts/Themes/redmond/jquery-ui-1.8.2.custom.css" rel="stylesheet" />
+	<link href="Scripts/Themes/ui.jqgrid.css" rel="stylesheet" />
+	<link rel="stylesheet" type="text/css" href="css/execution-summary.css" />
+	<link rel="stylesheet" type="text/css" href="css/common.css" />
+	<link rel="stylesheet" type="text/css" href="css/card.css" />
+
+	<script src="Bootstrap/vendor/jquery/jquery.min.js"></script>
+	<script src="Scripts/jqgrid/jquery.jqGrid.min.js"></script>
+	<script src="Scripts/jqgrid/i18n/grid.locale-en.js"></script>
+	<script src="Bootstrap/canvasjs.min.js"></script>
+	<script src="Bootstrap/vendor/bootstrap/js/bootstrap.min.js"></script>
+	<script src="Bootstrap/vendor/metisMenu/metisMenu.min.js"></script>
+	<script src="Bootstrap/vendor/raphael/raphael.min.js"></script>
+	<script src="Bootstrap/vendor/morrisjs/morris.min.js"></script>
+	<script src="js/global.js"></script>
+	<script src="https://kit.fontawesome.com/1d83ed769a.js" crossorigin="anonymous"></script>
+	<script src="js/execution-summary-main.js"></script>
+	<script src="js/execution-summary.js"></script>
+
+	<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+	<style>
+		*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+		body {
+			font-family: 'DM Sans', sans-serif;
+			background: linear-gradient(135deg, #dce8f5 0%, #eaf3fb 50%, #f0f6fc 100%);
+			min-height: 100vh;
+			padding: 24px;
+			color: #1a2332;
+		}
+
+		/* ── TOP NAV ── */
+		.dash-nav {
+			display: flex;
+			justify-content: center;
+			margin-bottom: 28px;
+		}
+		.dash-nav-inner {
+			display: flex;
+			gap: 4px;
+			background: #fff;
+			border-radius: 50px;
+			padding: 5px 8px;
+			box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+		}
+		.dash-nav-inner a {
+			display: inline-block;
+			padding: 8px 20px;
+			border-radius: 50px;
+			font-size: 13.5px;
+			font-weight: 500;
+			color: #4a5568;
+			text-decoration: none;
+			transition: background 0.18s, color 0.18s;
+			white-space: nowrap;
+		}
+		.dash-nav-inner a:hover { background: #f0f4f8; color: #1a2332; }
+		.dash-nav-inner a.active { background: #fff; color: #1a2332; font-weight: 600; box-shadow: 0 1px 6px rgba(0,0,0,0.12); }
+
+		/* ── PAGE HEADER ── */
+		.page-header-bar {
+			display: flex;
+			align-items: center;
+			gap: 10px;
+			margin-bottom: 22px;
+		}
+		.page-header-bar h1 {
+			font-size: 20px;
+			font-weight: 700;
+			color: #1a2332;
+		}
+		.page-header-bar .badge-pill {
+			background: #eef2ff;
+			color: #4b7bec;
+			font-size: 11px;
+			font-weight: 600;
+			padding: 3px 10px;
+			border-radius: 50px;
+			letter-spacing: 0.03em;
+		}
+
+		/* ── CARD BASE ── */
+		.dash-card {
+			background: #fff;
+			border-radius: 16px;
+			box-shadow: 0 1px 8px rgba(0,0,0,0.06);
+			overflow: hidden;
+			margin-bottom: 20px;
+		}
+		.dash-card-header {
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			padding: 18px 22px 14px;
+			border-bottom: 1px solid #f1f5f9;
+		}
+		.dash-card-header h3 {
+			font-size: 14px;
+			font-weight: 600;
+			color: #1a2332;
+		}
+		.dash-card-body { padding: 20px 22px; }
+
+		/* ── DETAILS GRID ── */
+		.details-row {
+			display: grid;
+			grid-template-columns: 1fr 1fr;
+			gap: 20px;
+			margin-bottom: 20px;
+		}
+		@media (max-width: 768px) { .details-row { grid-template-columns: 1fr; } }
+
+		.detail-label {
+			font-size: 11.5px;
+			font-weight: 600;
+			color: #4b7bec;
+			margin-bottom: 2px;
+		}
+		.detail-value {
+			font-size: 13px;
+			color: #374151;
+			font-weight: 500;
+			margin-bottom: 14px;
+		}
+		.detail-value:last-child { margin-bottom: 0; }
+
+		/* ── TABLE / JQGRID OVERRIDES ── */
+		.dash-table-wrap { overflow-x: auto; }
+		#MainReport {
+			width: 100% !important;
+			border-collapse: collapse;
+		}
+		.ui-jqgrid .ui-jqgrid-htable th {
+			background: #f8fafc !important;
+			color: #64748b !important;
+			font-size: 12px !important;
+			font-weight: 600 !important;
+			border-bottom: 1px solid #e8edf3 !important;
+			padding: 10px 14px !important;
+			white-space: nowrap;
+		}
+		.ui-jqgrid .ui-jqgrid-btable td {
+			font-size: 13px !important;
+			color: #374151 !important;
+			border-bottom: 1px solid #f1f5f9 !important;
+			padding: 10px 14px !important;
+		}
+		.ui-jqgrid .ui-jqgrid-btable tr:hover td { background: #f8fafc !important; }
+		.ui-jqgrid-pager { background: #f8fafc !important; border-top: 1px solid #f1f5f9 !important; }
+
+		/* Status badges in table */
+		.status-passed  { background: #dcfce7; color: #166534; border-radius: 50px; padding: 2px 10px; font-size: 11px; font-weight: 600; }
+		.status-failed  { background: #fee2e2; color: #991b1b; border-radius: 50px; padding: 2px 10px; font-size: 11px; font-weight: 600; }
+		.status-skipped { background: #fef9c3; color: #854d0e; border-radius: 50px; padding: 2px 10px; font-size: 11px; font-weight: 600; }
+
+		/* ── DOTS MENU ── */
+		.dots-btn {
+			background: none;
+			border: none;
+			cursor: pointer;
+			color: #94a3b8;
+			font-size: 18px;
+			line-height: 1;
+			padding: 2px 6px;
+			border-radius: 6px;
+		}
+		.dots-btn:hover { background: #f1f5f9; }
+
+		/* ── MODAL ── */
+		.modal-content { border-radius: 14px !important; border: none !important; box-shadow: 0 8px 40px rgba(0,0,0,0.16) !important; font-family: 'DM Sans', sans-serif; }
+		.modal-header { border-bottom: 1px solid #f1f5f9 !important; padding: 18px 22px !important; }
+		.modal-title { font-size: 15px !important; font-weight: 600 !important; color: #1a2332 !important; }
+		.modal-footer { border-top: 1px solid #f1f5f9 !important; padding: 14px 22px !important; }
+		.btn-primary  { background: #4b7bec !important; border-color: #4b7bec !important; border-radius: 8px !important; font-size: 13px !important; font-weight: 500 !important; padding: 7px 18px !important; }
+		.btn-danger   { background: #ef4444 !important; border-color: #ef4444 !important; border-radius: 8px !important; font-size: 13px !important; font-weight: 500 !important; padding: 7px 18px !important; }
+		.btn-secondary { background: #f1f5f9 !important; border-color: #f1f5f9 !important; color: #374151 !important; border-radius: 8px !important; font-size: 13px !important; }
+
+		/* Carousel inside modal */
+		.carousel-control { background: none !important; color: #4b7bec !important; }
+		.carousel-indicators li { background-color: #cbd5e1 !important; }
+		.carousel-indicators .active { background-color: #4b7bec !important; }
+
+		/* ── LOADER ── */
+		.overlay {
+			position: fixed; inset: 0;
+			background: rgba(255,255,255,0.75);
+			display: none;
+			align-items: center;
+			justify-content: center;
+			z-index: 9999;
+			font-size: 16px;
+			font-weight: 600;
+			color: #4b7bec;
+		}
+		#ajax-spinner {
+			position: fixed;
+			top: 18px; right: 24px;
+			z-index: 9998;
+			display: none;
+		}
+		.spinner-border {
+			width: 24px; height: 24px;
+			border: 3px solid #e2e8f0;
+			border-top-color: #4b7bec;
+			border-radius: 50%;
+			animation: spin 0.75s linear infinite;
+		}
+		@keyframes spin { to { transform: rotate(360deg); } }
+	</style>
+</head>
+
+<body>
+	<!-- Required by global.js -->
+	<span id="txt" style="display:none;"></span>
+
+	<!-- TOP NAV -->
+	<nav class="dash-nav">
+		<div class="dash-nav-inner">
+			<a href="index.html" id="dashboardLink">Dashboard</a>
+			<a href="index.html">Reset</a>
+			<a href="ExecutionSummary.html" id="IdExecutionSummary" class="active">Summary report</a>
+			<a href="#">System wise report</a>
+			<a href="javascript:history.go(0)">Refresh</a>
+			<a href="#" onclick="window.print()">Print</a>
+		</div>
+	</nav>
+
+	<!-- PAGE HEADER -->
+	<div class="page-header-bar">
+		<h1>Execution Summary Report</h1>
+		<span class="badge-pill">Summary</span>
+	</div>
+
+	<!-- SYSTEM + EXECUTION DETAILS -->
+	<div class="details-row">
+		<!-- System Details -->
+		<div class="dash-card">
+			<div class="dash-card-header">
+				<h3>System details</h3>
+				<button class="dots-btn">&#8942;</button>
+			</div>
+			<div class="dash-card-body">
+				<div class="detail-label">Executed by</div>
+				<div class="detail-value"><span id="ExecutedBy">NULL</span></div>
+				<div class="detail-label">Project Name</div>
+				<div class="detail-value"><span id="ProjectName">NULL</span></div>
+				<div class="detail-label">Environment</div>
+				<div class="detail-value"><span id="TargettedEnvironment">NULL</span></div>
+				<div class="detail-label">Browser</div>
+				<div class="detail-value"><span id="BrowserType">NULL</span></div>
+				<div class="detail-label">Release</div>
+				<div class="detail-value"><span id="Release">NULL</span></div>
+			</div>
+		</div>
+
+		<!-- Execution Details -->
+		<div class="dash-card">
+			<div class="dash-card-header">
+				<h3>Execution details</h3>
+				<button class="dots-btn">&#8942;</button>
+			</div>
+			<div class="dash-card-body">
+				<div class="detail-label">Run</div>
+				<div class="detail-value"><span id="Run">NULL</span></div>
+				<div class="detail-label">Execution Started</div>
+				<div class="detail-value"><span id="RunStarted">NULL</span></div>
+				<div class="detail-label">Execution Ended</div>
+				<div class="detail-value"><span id="RunEnded">NULL</span></div>
+				<div class="detail-label">Execution Time</div>
+				<div class="detail-value"><span id="TotalExecutionTime">NULL</span></div>
+			</div>
+		</div>
+	</div>
+
+	<!-- MAIN REPORT TABLE -->
+	<div class="dash-card">
+		<div class="dash-card-header">
+			<h3>Test case results</h3>
+			<button class="dots-btn">&#8942;</button>
+		</div>
+		<div class="dash-card-body dash-table-wrap">
+			<table id="SummaryReport" align="center" style="height: 100%; width: 99%;">
+				<tr width="100%">
+					<td width="100%">
+						<div class="col-lg-24" align="center" width="100%">
+							<table id="MainReport" align="center" width="100%"></table>
+							<div id="gridpager"></div>
+						</div>
+					</td>
+				</tr>
+			</table>
+		</div>
+	</div>
+
+	<!-- Test Steps Modal (carousel) -->
+	<div id="testStepsModal" class="modal" tabindex="-1" role="dialog">
+		<div class="modal-dialog modal-dialog-centered" role="document">
+			<div class="modal-content">
+				<div class="modal-header">
+					<h4 class="modal-title">Modal title</h4>
+				</div>
+				<div class="modal-body">
+					<div id="testStepsCarousel" class="carousel slide">
+						<ol class="carousel-indicators"></ol>
+						<div class="carousel-inner" role="listbox"></div>
+						<a class="left carousel-control" href="#testStepsCarousel" role="button" data-slide="prev">
+							<span class="glyphicon glyphicon-chevron-left" aria-hidden="true"></span>
+							<span class="sr-only">Previous</span>
+						</a>
+						<a class="right carousel-control" href="#testStepsCarousel" role="button" data-slide="next">
+							<span class="glyphicon glyphicon-chevron-right" aria-hidden="true"></span>
+							<span class="sr-only">Next</span>
+						</a>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<!-- Comments Modal -->
+	<div class="modal fade" id="commentsModal" tabindex="-1" role="dialog" aria-labelledby="commentsModalTitle" aria-hidden="true">
+		<div class="modal-dialog modal-dialog-centered" style="width:36.5vw" role="document">
+			<div class="modal-content">
+				<div class="modal-header">
+					<h5 class="modal-title" id="commentsModalTitle">Comments</h5>
+				</div>
+				<div class="modal-body">
+					<div class="content"></div>
+				</div>
+				<div class="modal-footer">
+					<input type="hidden" id="testCaseIdToUpdate">
+					<button type="button" class="btn btn-danger">Delete</button>
+					<button type="button" class="btn btn-primary">Save</button>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<div id="ajax-loader" class="overlay">
+		<div class="text">Wait...</div>
+	</div>
+	<div class="clearfix" id="ajax-spinner">
+		<div class="spinner-border float-right" role="status">
+			<span class="sr-only">Loading...</span>
+		</div>
+	</div>
+
+</body>
+</html>

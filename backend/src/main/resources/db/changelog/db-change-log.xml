@@ -1,0 +1,247 @@
+<?xml version="1.1" encoding="UTF-8" standalone="no"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+				   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+				   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.0.xsd">
+	<changeSet id="0" author="qatlas">
+	<sql> CREATE SCHEMA IF NOT EXISTS reports_db</sql>
+	<comment>script to create schema if not exists.</comment>	
+	</changeSet>
+	<changeSet id="1" author="qatlas">
+		<createTable tableName="application" schemaName="reports_db">
+			<column name="id" type="bigint" autoIncrement="true" startWith="1" incrementBy="1">
+				<constraints primaryKey="true" nullable="false" primaryKeyName="APPLICATION_ID"/>
+			</column>
+			<column name="name" type="varchar(50)">
+				<constraints nullable="false"/>
+			</column>
+			<column name="description" type="varchar(255)">
+			</column>	
+		</createTable>
+	</changeSet>
+	<changeSet id="2" author="qatlas">
+		<createTable tableName="environment" schemaName="reports_db">
+			<column name="id" type="bigint" autoIncrement="true" startWith="1" incrementBy="1">
+				<constraints primaryKey="true" nullable="false" primaryKeyName="ENVIRONMENT_ID"/>
+			</column>
+			<column name="name" type="varchar(50)">
+				<constraints nullable="false"/>
+			</column>
+			<column name="description" type="varchar(255)">
+			</column>
+		</createTable>
+	</changeSet>
+	<changeSet id="3" author="qatlas">
+		<createTable tableName="test_execution" schemaName="reports_db">
+			<column name="id" type="bigint" autoIncrement="true" startWith="1" incrementBy="1">
+				<constraints primaryKey="true" nullable="false" primaryKeyName="TEST_EXECUTION_ID"/>
+			</column>
+			<column name="name" type="varchar(50)">
+				<constraints nullable="false"/>
+			</column>
+			<column name="APPLICATION_ID" type="bigint">
+				<constraints foreignKeyName="FK_TEST_EXECUTION_APP_ID" nullable="false" references="reports_db.application(id)"/>
+			</column>
+			<column name="app_version" type="varchar(10)"/>
+			<column name="ENVIRONMENT_ID" type="bigint">
+				<constraints foreignKeyName="FK_TEST_EXECUTION_ENV_ID" nullable="false" references="reports_db.environment(id)"/>
+			</column>
+			<column name="browser_name" type="varchar(100)">
+				<constraints nullable="false"/>
+			</column>
+			<column name="os_name" type="varchar(100)">
+				<constraints nullable="false"/>
+			</column>
+			<column name="system_name" type="varchar(50)">
+				<constraints nullable="false"/>
+			</column>
+			<column name="system_ip" type="varchar(20)">
+				<constraints nullable="false" />
+			</column>
+			<column name="executed_by" type="varchar(50)"/>
+			<column name="start_time" type="timestamp">
+				<constraints nullable="false" />
+			</column>
+			<column name="end_time" type="timestamp" />
+		</createTable>
+	</changeSet>
+	<changeSet id="4" author="qatlas">
+		<createTable tableName="test_suite" schemaName="reports_db">
+			<column name="id" type="bigint" autoIncrement="true" startWith="1" incrementBy="1">
+				<constraints primaryKey="true" nullable="false" primaryKeyName="TEST_SUITE_ID"/>
+			</column>
+			<column name="TEST_EXECUTION_ID" type="bigint">
+				<constraints foreignKeyName="FK_TEST_SUITE_EXECUTION_ID" nullable="false" references="reports_db.test_execution(id)"/>
+			</column>
+			<column name="NAME" type="varchar(100)">
+				<constraints nullable="false" />
+			</column>
+			<column name="PLANNED_TEST_CASES_CNT" type="number"/>
+			<column name="created_time" type="timestamp">
+				<constraints nullable="false" />
+			</column>
+			<column name="updated_time" type="timestamp">
+			</column>
+		</createTable>
+	</changeSet>
+	<changeSet id="5" author="qatlas">
+		<createTable tableName="test_case" schemaName="reports_db">
+			<column name="id" type="bigint" autoIncrement="true" startWith="1" incrementBy="1">
+				<constraints primaryKey="true" nullable="false" primaryKeyName="TEST_case_ID"/>
+			</column>
+			<column name="TEST_SUITE_ID" type="bigint">
+				<constraints foreignKeyName="FK_TEST_CASE_SUITE_ID" nullable="false" references="reports_db.test_suite(id)"/>
+			</column>
+			<column name="NAME" type="varchar(100)">
+				<constraints nullable="false" />
+			</column>
+			<column name="EXECUTION_STATUS" type="varchar(10)">
+				<constraints nullable="false" />
+			</column>
+			<column name="created_time" type="timestamp">
+				<constraints nullable="false" />
+			</column>
+			<column name="updated_time" type="timestamp" />
+		</createTable>
+	</changeSet>
+	<changeSet id="6" author="qatlas">
+		<createTable tableName="test_step" schemaName="reports_db">
+			<column name="id" type="bigint" autoIncrement="true" startWith="1" incrementBy="1">
+				<constraints primaryKey="true" nullable="false" primaryKeyName="TEST_STEP_ID"/>
+			</column>
+			<column name="TEST_CASE_ID" type="bigint">
+				<constraints foreignKeyName="FK_TEST_STEP_CASE_ID" nullable="false" references="reports_db.test_case(id)"/>
+			</column>
+			<column name="DESCRIPTION" type="varchar(255)">
+				<constraints nullable="false" />
+			</column>
+			<column name="OBJECT_NAME" type="varchar(50)"/>
+			<column name="OPERATION" type="varchar(50)"/>
+			<column name="RESULT" type="varchar(50)"/>
+
+			<column name="EXECUTION_TIME" type="NUMBER" />
+			<column name="EXECUTION_STATUS" type="VARCHAR(10)" />
+		</createTable>
+	</changeSet>
+	<changeSet id="7" author="qatlas">
+		<createTable tableName="test_step_attachment" schemaName="reports_db">
+			<column name="id" type="bigint" autoIncrement="true" startWith="1" incrementBy="1">
+				<constraints primaryKey="true" nullable="false" primaryKeyName="TEST_STEP_attachment_ID"/>
+			</column>
+			<column name="TEST_STEP_ID" type="bigint">
+				<constraints foreignKeyName="FK_TEST_STEP_ATTACHMENT_STEP_ID" nullable="false" references="reports_db.test_step(id)"/>
+			</column>
+			<column name="ATTACHMENT_TYPE" type="varchar(20)">
+				<constraints nullable="false" />
+			</column>
+			<column name="ATTACHMENT_NAME" type="varchar(50)">
+				<constraints nullable="false" />
+			</column>
+		</createTable>
+	</changeSet>
+	<changeSet id="8" author="qatlas">
+		<modifyDataType
+			tableName="test_step" schemaName="reports_db"
+			columnName="DESCRIPTION" newDataType="CLOB" />
+		<modifyDataType
+			tableName="test_step" schemaName="reports_db"
+			columnName="RESULT" newDataType="CLOB" />
+		<modifyDataType
+			tableName="test_step" schemaName="reports_db"
+			columnName="OBJECT_NAME" newDataType="CLOB" />
+		<modifyDataType
+			tableName="test_step" schemaName="reports_db"
+			columnName="OPERATION" newDataType="CLOB" />
+	</changeSet>
+	<changeSet id="task-REP-30" author="qatlas">
+		<addColumn tableName="test_case" schemaName="reports_db">
+			<column name="reference_id" type="varchar(255)" />
+		</addColumn>
+		<modifyDataType
+			tableName="test_execution" schemaName="reports_db"
+			columnName="app_version" newDataType="varchar(255)" />
+	</changeSet>
+	<changeSet id="story-REP-6" author="qatlas">
+		<addUniqueConstraint
+			tableName="application" schemaName="reports_db"
+			columnNames="name"
+			constraintName="APPLICATION_NAME" />
+		<addUniqueConstraint
+			tableName="environment" schemaName="reports_db"
+			columnNames="name"
+			constraintName="ENVIRONMENT_NAME" />
+	</changeSet>
+	<changeSet id="update-execution-status-enums" author="qatlas">
+		<update tableName="test_case" schemaName="reports_db">
+			<column name="EXECUTION_STATUS" value="PROGRESS"/>
+			<where>EXECUTION_STATUS='0'</where>
+		</update>
+		<update tableName="test_case" schemaName="reports_db">
+			<column name="EXECUTION_STATUS" value="PASSED"/>
+			<where>EXECUTION_STATUS='1'</where>
+		</update>
+		<update tableName="test_case" schemaName="reports_db">
+			<column name="EXECUTION_STATUS" value="FAILED"/>
+			<where>EXECUTION_STATUS='2'</where>
+		</update>
+		<update tableName="test_case" schemaName="reports_db">
+			<column name="EXECUTION_STATUS" value="WARNING"/>
+			<where>EXECUTION_STATUS='3'</where>
+		</update>
+		<update tableName="test_step" schemaName="reports_db">
+			<column name="EXECUTION_STATUS" value="PROGRESS"/>
+			<where>EXECUTION_STATUS='0'</where>
+		</update>
+		<update tableName="test_step" schemaName="reports_db">
+			<column name="EXECUTION_STATUS" value="PASSED"/>
+			<where>EXECUTION_STATUS='1'</where>
+		</update>
+		<update tableName="test_step" schemaName="reports_db">
+			<column name="EXECUTION_STATUS" value="FAILED"/>
+			<where>EXECUTION_STATUS='2'</where>
+		</update>
+		<update tableName="test_step" schemaName="reports_db">
+			<column name="EXECUTION_STATUS" value="WARNING"/>
+			<where>EXECUTION_STATUS='3'</where>
+		</update>
+	</changeSet>
+	<changeSet id="update-attachment-type-enums" author="qatlas">
+		<update tableName="test_step_attachment" schemaName="reports_db">
+			<column name="ATTACHMENT_TYPE" value="SNAPSHOT"/>
+			<where>ATTACHMENT_TYPE='0'</where>
+		</update>
+		<update tableName="test_step_attachment" schemaName="reports_db">
+			<column name="ATTACHMENT_TYPE" value="OTHER"/>
+			<where>ATTACHMENT_TYPE='1'</where>
+		</update>
+	</changeSet>
+	<changeSet id="alter-timestamp-type" author="qatlas">
+		<modifyDataType schemaName="reports_db"
+			tableName="test_execution"
+			columnName="start_time" newDataType="timestamp(3)"/>
+		<modifyDataType schemaName="reports_db"
+			tableName="test_execution"
+			columnName="end_time" newDataType="timestamp(3)"/>
+		<modifyDataType schemaName="reports_db"
+			tableName="test_suite"
+			columnName="created_time" newDataType="timestamp(3)"/>
+		<modifyDataType schemaName="reports_db"
+			tableName="test_suite"
+			columnName="updated_time" newDataType="timestamp(3)"/>
+		<modifyDataType schemaName="reports_db"
+			tableName="test_case"
+			columnName="created_time" newDataType="timestamp(3)"/>
+		<modifyDataType schemaName="reports_db"
+			tableName="test_case"
+			columnName="updated_time" newDataType="timestamp(3)"/>
+	</changeSet>
+	<changeSet id="story-REP-48" author="qatlas">
+		<addColumn tableName="test_case" schemaName="reports_db">
+			<column name="COMMENTS" type="CLOB" />
+		</addColumn>
+	</changeSet>
+	<changeSet id="story-REP-54" author="qatlas">
+		<addColumn tableName="test_execution" schemaName="reports_db">
+			<column name="IS_ARCHIVED" type="BOOLEAN" defaultValue="FALSE" />
+		</addColumn>
+	</changeSet>
+</databaseChangeLog>

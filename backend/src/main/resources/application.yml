@@ -1,0 +1,81 @@
+###### Start - App settings
+app:
+  data:
+#    root-path: C:\Users\reddy\Documents\test_reporting\dev
+#    Add the above property through IntelliJ Spring run configuration by passing environment variable as below
+#    app.data.root-path=<path>
+    storage:
+      location: ${app.data.root-path}/attachments
+    logs:
+      path: ${app.data.root-path}/logs
+      file-name: test-reports-logs
+  logging:
+    level:
+      file: ERROR #logback ThresholdFilter log level for RollingFileAppender
+      console: ERROR #logback ThresholdFilter log level for ConsoleAppender
+    request-logging:
+      INCLUDE_PAYLOAD: false #Flag, whether or not to include payload in CommonsRequestLoggingFilter logs
+  security:
+#    Add real values through IntelliJ Spring run configuration as environment variables:
+#    ADMIN_USERNAME=<your admin username>
+#    ADMIN_PASSWORD=<your admin password>
+#    TOKEN_SECRET=<a long random string>
+    admin-username: ${ADMIN_USERNAME:admin}
+    admin-password: ${ADMIN_PASSWORD:changeme}
+    token-secret: ${TOKEN_SECRET:please-change-this-in-your-env}
+    token-expiry-minutes: 480
+###OpenAPI settings - Start
+  open-api:
+    servers:
+      -
+        description: Local Server
+        url: http://localhost:8080
+    info:
+      title: '@project.artifactId@ @project.name@'
+      description: '@project.description@'
+      version: '@project.version@'
+###OpenAPI settings - End
+###### End - App settings
+
+###### Start - SPRING settings
+server:
+  port: 8080
+  error:
+    include-stacktrace: always
+
+spring:
+  web:
+    resources:
+      static-locations: classpath:/static,file:${app.data.root-path}
+  servlet:
+    multipart:
+      max-file-size: 512KB
+      max-request-size: 512KB
+###### End - SPRING settings
+
+###### Start - DATABASE settings
+  datasource:
+    url: jdbc:mysql://localhost:3306/reports_db
+    username: reports_user
+    password: password
+  jpa:
+    hibernate:
+      ddl-auto: none
+      show-sql: true
+  liquibase:
+    change-log: classpath:db/changelog/db-change-log.xml
+###### End - DATABASE settings
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+
+springdoc:
+  swagger-ui:
+    operationsSorter: method
+
+logging:
+  level:
+    root: ERROR

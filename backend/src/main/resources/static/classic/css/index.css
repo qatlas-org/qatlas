@@ -1,0 +1,182 @@
+.overlay {
+    position: fixed;
+    display: none;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0,0,0,0.6);
+    z-index: 2;
+    cursor: pointer;
+    user-select: none;
+}
+.overlay .text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    font-size: 50px;
+    color: white;
+    user-select: none;
+    transform: translate(-50%,-50%);
+    -ms-transform: translate(-50%,-50%);
+}
+.btn-group,row {
+    color: red;
+    width: 97.5%;
+    float: none;
+    margin: 5px auto;
+    display: block;
+}
+.row{
+    margin-left: 0.5%;
+    margin-right: 0.5%;
+}
+.col-lg-2.col-md-6.dashboard-summary {
+    margin-right: 0;
+}
+
+.wheel-icon {
+    padding-left: 0;
+}
+
+.ui-widget-overlay {
+    background: none;
+}
+
+.ui-jqgrid-htable {
+    margin: 0 auto;
+}
+
+/* jqGrid inserts a hidden helper row (.jqgfirstrow) purely for internal
+   column-width measurement - it's meant to be invisible/zero-height.
+   This rule already existed here but was commented out, which is why
+   it was rendering as a large empty row above the real data rows. */
+#gbox_chartHistory .jqgfirstrow {
+    display: none;
+}
+
+.ui-jqgrid-sortable {
+    text-align: center;
+}
+.ui-grid-ico-sort{
+    display: none
+    }
+
+.ui-jqgrid-resize.ui-jqgrid-resize-ltr {
+    display: none;
+}
+
+.panel{
+    background-color:#d7edff
+}
+
+.dateCol{
+    width: 171px;
+}
+
+.tdCol{
+    width: 85px;
+}
+.well{
+    display: none
+}
+
+.custom-container {
+  width: 100%
+}
+@media only screen and (min-width: 1200px) {
+    .col-lg-2.col-md-6.dashboard-summary {
+        margin-right: 4.15%;
+    }
+}
+
+#lui_chartHistory{
+    display:none !important;
+}
+
+#targetted, #executed, #passed, #failed, #inprogress, #skipped {
+    color: #fff;
+}
+
+.pointer-icon {
+    cursor: pointer;
+}
+
+#alertmod_chartHistory {
+    display: none;
+}
+
+.ui-jqgrid tr td .fas {
+    margin: 0 5px 0 5px;
+    cursor: pointer;
+}
+
+tr.ui-search-toolbar table.ui-search-table {
+    width: 100%;
+}
+
+/* ── #chartHistory grid: alignment / filter-toolbar visibility fixes ────
+   jqGrid renders its header and body as two SEPARATE <table> elements
+   that must stay pixel-width-synced. Bootstrap's global form-control
+   resets also strip jqGrid's own <select>/<input> styling, which is why
+   the Application/Release/Run filter row rendered blank. Both issues are
+   scoped to #gbox_chartHistory only, so they don't affect other grids. */
+
+/* Checkbox column: center both jqGrid's native row checkboxes and our
+   injected "select all on this page" header checkbox */
+#gbox_chartHistory th#chartHistory_cb,
+#gbox_chartHistory td[aria-describedby="chartHistory_cb"] {
+    text-align: center;
+    vertical-align: middle;
+}
+#gbox_chartHistory td[aria-describedby="chartHistory_cb"] input.cbox {
+    display: block;
+    margin: 0 auto;
+}
+
+/* Filter-toolbar (Application/Release/Run search row) inputs & selects */
+#gbox_chartHistory .ui-search-toolbar th {
+    padding: 2px 3px;
+    vertical-align: middle;
+}
+#gbox_chartHistory .ui-search-toolbar input[type="text"],
+#gbox_chartHistory .ui-search-toolbar select {
+    box-sizing: border-box;
+    width: 100% !important;
+    height: 24px;
+    margin: 0;
+    padding: 1px 3px;
+    border: 1px solid #ccc;
+    background-color: #fff;
+    font-size: 12px;
+    line-height: 1.2;
+    -webkit-appearance: menulist;
+    appearance: menulist;
+}
+
+/* Keep header (htable) and body (btable) column widths pinned to the
+   colModel widths on both tables, so rows stay aligned to columns even
+   after post-render DOM changes (filterToolbar, injected checkbox). */
+#gbox_chartHistory .ui-jqgrid-htable,
+#gbox_chartHistory .ui-jqgrid-btable {
+    table-layout: fixed;
+}
+
+/* ROOT CAUSE of the checkbox-column and column-overflow issues: this
+   grid's <th>/<td> cells were inheriting ~14px of padding PER SIDE
+   (28px total) from a conflict between Bootstrap's table styles and
+   jqGrid's own jQuery UI theme CSS. For the checkbox column specifically
+   (declared 25px wide), that padding alone exceeds the whole column
+   width, so jqGrid's internal "content area = width - padding"
+   calculation goes negative, clamped to 0 - collapsing the checkbox's
+   wrapper div and clipping it invisible. The same excess padding also
+   inflated every other column's rendered width well beyond what jqGrid
+   declared, causing the grid to overflow its container and require
+   horizontal scrolling. Pinning padding to a small, sane value fixes
+   both at the source - no box-sizing override needed. */
+#gbox_chartHistory .ui-jqgrid-htable th,
+#gbox_chartHistory .ui-jqgrid-btable td {
+    padding: 4px 6px !important;
+}

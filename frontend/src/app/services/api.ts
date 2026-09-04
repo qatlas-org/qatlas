@@ -1,0 +1,13 @@
+export * from './application.service';
+import { ApplicationService } from './application.service';
+export * from './environment.service';
+import { EnvironmentService } from './environment.service';
+export * from './testCase.service';
+import { TestCaseService } from './testCase.service';
+export * from './testExecution.service';
+import { TestExecutionService } from './testExecution.service';
+export * from './testStep.service';
+import { TestStepService } from './testStep.service';
+export * from './testSuite.service';
+import { TestSuiteService } from './testSuite.service';
+export const APIS = [ApplicationService, EnvironmentService, TestCaseService, TestExecutionService, TestStepService, TestSuiteService];

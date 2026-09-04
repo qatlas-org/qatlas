@@ -1,0 +1,35 @@
+.auto-style1 {
+    font-style: italic;
+    font-weight: bold;
+    text-align: Right;
+}
+
+.btn-group,row {
+    color: red;
+    width: 97.5%;
+    float: none;
+    margin: 5px auto;
+    display: block;
+}
+.row{
+    margin-left: 0.5%;
+    margin-right: 0.5%;
+}
+ul.attachment-icons {
+    display: flex;
+    align-items: stretch; /* Default */
+    justify-content: space-evenly;
+    width: 100%;
+    margin: 0;
+    padding: 3px;
+}
+ul.attachment-icons li {
+    display: block;
+    flex: 0 1 auto; /* Default */
+    list-style-type: none;
+    cursor: pointer;
+}
+ul.attachment-icons li a {
+    font-size: 1.5em;
+    color: Dodgerblue !important;
+}

@@ -1,0 +1,65 @@
+###### Start - App settings
+app:
+  data:
+    root-path: /app/data
+    storage:
+      location: ${app.data.root-path}/attachments
+    logs:
+      path: ${app.data.root-path}/logs
+      file-name: test-reports-logs
+  logging:
+    level:
+      file: ERROR #logback ThresholdFilter log level for RollingFileAppender
+      console: WARN #logback ThresholdFilter log level for ConsoleAppender
+    request-logging:
+      INCLUDE_PAYLOAD: false #Flag, whether or not to include payload in CommonsRequestLoggingFilter logs
+###OpenAPI settings - Start
+  open-api:
+    servers:
+      -
+        description: Local Server
+        url: http://localhost:8080   # this should be updated to backend container name
+    info:
+      title: '@project.artifactId@ @project.name@'
+      description: '@project.description@'
+      version: '@project.version@'
+###OpenAPI settings - End
+###### End - App settings
+
+###### Start - SPRING settings
+server:
+  port: 8080
+  error:
+    include-stacktrace: always
+
+spring:
+  servlet:
+    multipart:
+      max-file-size: 512KB
+      max-request-size: 512KB
+###### End - SPRING settings
+
+###### Start - DATABASE settings
+  datasource:
+    url: jdbc:mysql://mysql:3306/reports_db
+    username: reports_user
+    password: password
+  jpa:
+    hibernate:
+      ddl-auto: none
+      show-sql: true
+  liquibase:
+    change-log: classpath:db/changelog/db-change-log.xml
+###### End - DATABASE settings
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+
+springdoc:
+  swagger-ui:
+    operationsSorter: method
+    enabled: false
+  disable-swagger-default-url: true

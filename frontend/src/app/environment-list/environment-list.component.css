@@ -1,0 +1,14 @@
+th.mat-header-cell{
+    text-align: center;
+    font-size: medium;
+    color: white;
+}
+td.mat-cell {
+    text-align: center;
+}
+tr.mat-header-row{
+    background-color: lightslategray;
+}
+.input-field-width{
+    width: 100%;
+}

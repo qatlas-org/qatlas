@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <springProperty
+        scope="context"
+        name="LOGS"
+        source="app.data.logs.path"/>
+    <springProperty
+        scope="context"
+        name="LOGS_FILE_NAME"
+        source="app.data.logs.file-name"/>
+    <springProperty
+        scope="context"
+        name="FILE_LOG_LEVEL"
+        source="app.logging.level.file"/>
+    <springProperty
+        scope="context"
+        name="CONSOLE_LOG_LEVEL"
+        source="app.logging.level.console"/>
+
+    <appender name="Console" class="ch.qos.logback.core.ConsoleAppender">
+        <layout class="ch.qos.logback.classic.PatternLayout">
+            <Pattern>
+                %magenta(%d{ISO8601}) %highlight(%-5level) [%blue(%t)] %yellow(%C{36}) [%cyan(Line#%L)]: %msg%n%throwable
+            </Pattern>
+        </layout>
+        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+            <level>${CONSOLE_LOG_LEVEL:-WARN}</level>
+        </filter>
+    </appender>
+
+    <appender name="RollingFile"
+              class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOGS}/${LOGS_FILE_NAME}.log</file>
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <Pattern>%d{ISO8601} %p [%t] %C{36}#%L: %m%n</Pattern>
+        </encoder>
+        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+            <level>${FILE_LOG_LEVEL:-WARN}</level>
+        </filter>
+        <rollingPolicy
+                class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <!-- rollover daily and when the file reaches 10 MegaBytes -->
+            <fileNamePattern>${LOGS}/archived/${LOGS_FILE_NAME}-%d{yyyy-MM-dd}.%i.log
+            </fileNamePattern>
+            <timeBasedFileNamingAndTriggeringPolicy
+                    class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
+                <maxFileSize>5MB</maxFileSize>
+            </timeBasedFileNamingAndTriggeringPolicy>
+        </rollingPolicy>
+    </appender>
+
+    <root level="${logging.level.root:-WARN}">
+        <appender-ref ref="RollingFile" />
+        <appender-ref ref="Console" />
+    </root>
+
+    <logger name="org.qatlas.backend" level="${logging.level.org.qatlas.backend:-WARN}" additivity="false">
+        <appender-ref ref="RollingFile" />
+        <appender-ref ref="Console" />
+    </logger>
+
+</configuration>

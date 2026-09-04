@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<title>LT QA Reports</title>
+	<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='30' fill='%231a2332'/%3E%3Cpath d='M32 4 A28 28 0 0 1 60 32' fill='none' stroke='%2322c55e' stroke-width='8' stroke-linecap='round'/%3E%3Cpath d='M60 32 A28 28 0 0 1 32 60' fill='none' stroke='%2322c55e' stroke-width='8' stroke-linecap='round'/%3E%3Cpath d='M32 60 A28 28 0 0 1 8 18' fill='none' stroke='%23ef4444' stroke-width='8' stroke-linecap='round'/%3E%3Cpath d='M8 18 A28 28 0 0 1 32 4' fill='none' stroke='%23f59e0b' stroke-width='8' stroke-linecap='round'/%3E%3Ctext x='32' y='38' text-anchor='middle' font-family='Arial,sans-serif' font-weight='700' font-size='15' fill='%23ffffff'%3EQA%3C/text%3E%3C/svg%3E">
+
+	<link href="Bootstrap/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+	<link href="Bootstrap/vendor/metisMenu/metisMenu.min.css" rel="stylesheet">
+	<link href="Bootstrap/dist/css/sb-admin-2.css" rel="stylesheet">
+	<link rel="stylesheet" type="text/css" href="src/jquery.jqplot.css" />
+	<link href="Scripts/Themes/redmond/jquery-ui-1.8.2.custom.css" rel="stylesheet" />
+	<link href="Scripts/Themes/ui.jqgrid.css" rel="stylesheet" />
+	<!-- *** UPGRADE: Chart.js replaces Highcharts. index.js has been rewritten — do NOT use the old index.js *** -->
+	<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+	<script>
+		// Safety check: if Chart.js failed to load from CDN, warn clearly
+		window.addEventListener('DOMContentLoaded', function() {
+			if (typeof Chart === 'undefined') {
+				document.body.insertAdjacentHTML('afterbegin',
+						'<div style="background:#fef2f2;border:1px solid #fecaca;color:#dc2626;padding:12px 16px;font-family:sans-serif;font-size:13px;border-radius:8px;margin:12px;">' +
+						'<b>Chart.js failed to load.</b> Check your internet connection or download chart.js and host it locally.' +
+						'</div>'
+				);
+			}
+		});
+	</script>
+
+	<link href="css/index.css" rel="stylesheet" />
+	<link rel="stylesheet" type="text/css" href="css/common.css" />
+
+	<script src="Bootstrap/vendor/jquery/jquery.min.js"></script>
+	<script src="Scripts/jqgrid/jquery.jqGrid.min.js"></script>
+	<script src="Scripts/jqgrid/i18n/grid.locale-en.js"></script>
+	<script src="Bootstrap/vendor/metisMenu/metisMenu.min.js"></script>
+	<script src="Bootstrap/vendor/raphael/raphael.min.js"></script>
+	<script src="Bootstrap/vendor/bootstrap/js/bootstrap.min.js"></script>
+
+	<script src="js/global.js"></script>
+	<script src="https://kit.fontawesome.com/1d83ed769a.js" crossorigin="anonymous"></script>
+	<script src="js/index.js?v=31"></script>
+
+	<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+	<style>
+		*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+		/* ── Hide the outer page scrollbar visually only. Scrolling
+		   itself still works (mouse wheel, trackpad, keyboard, touch) —
+		   this just removes the visible scrollbar track/thumb so it
+		   doesn't sit next to the table's own internal scrollbar,
+		   which is left untouched since it's a separate element. ── */
+		html {
+			scrollbar-width: none;      /* Firefox */
+			-ms-overflow-style: none;   /* legacy Edge/IE */
+		}
+		html::-webkit-scrollbar {
+			display: none;              /* Chrome, Safari, Edge (Chromium) */
+		}
+
+		body {
+			font-family: 'DM Sans', sans-serif;
+			background: linear-gradient(135deg, #dce8f5 0%, #eaf3fb 50%, #f0f6fc 100%);
+			min-height: 100vh;
+			padding: 24px;
+			color: #1a2332 !important;
+		}
+
+		/* ── TOP NAV ── */
+		.dash-nav {
+			display: flex;
+			justify-content: center;
+			margin-bottom: 28px;
+		}
+		.dash-nav-inner {
+			display: flex;
+			gap: 4px;
+			background: #fff;
+			border-radius: 50px;
+			padding: 5px 8px;
+			box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+		}
+		.dash-nav-inner a {
+			display: inline-block;
+			padding: 8px 20px;
+			border-radius: 50px;
+			font-size: 13.5px;
+			font-weight: 500;
+			color: #4a5568;
+			text-decoration: none;
+			transition: background 0.18s, color 0.18s;
+			white-space: nowrap;
+		}
+		.dash-nav-inner a:hover { background: #f0f4f8; color: #1a2332; }
+		.dash-nav-inner a.active { background: #fff; color: #1a2332; font-weight: 600; box-shadow: 0 1px 6px rgba(0,0,0,0.12); }
+
+		/* ── STAT TILES ── */
+		.stat-tiles {
+			display: grid;
+			grid-template-columns: repeat(6, 1fr);
+			gap: 14px;
+			margin-bottom: 24px;
+		}
+		@media (max-width: 1200px) { .stat-tiles { grid-template-columns: repeat(3, 1fr); } }
+		@media (max-width: 640px)  { .stat-tiles { grid-template-columns: repeat(2, 1fr); } }
+
+		.stat-tile {
+			background: #fff;
+			border-radius: 16px;
+			padding: 20px 18px 16px;
+			box-shadow: 0 1px 8px rgba(0,0,0,0.06);
+			display: flex;
+			flex-direction: column;
+			gap: 10px;
+		}
+		.stat-tile .tile-icon {
+			width: 36px;
+			height: 36px;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			color: #94a3b8;
+		}
+		.stat-tile .tile-icon svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 1.8; }
+		.stat-tile .tile-icon.passed-icon { color: #22c55e; }
+		.stat-tile .tile-icon.failed-icon { color: #ef4444; }
+		.stat-tile .tile-icon.inprog-icon { color: #94a3b8; }
+
+		.stat-tile a { text-decoration: none; display: block; }
+		.stat-tile a:hover .tile-num { color: #4b7bec !important; }
+		.stat-tile .tile-num {
+			font-size: 32px;
+			font-weight: 700;
+			line-height: 1;
+			color: #1a2332 !important;
+		}
+		.stat-tile .tile-label {
+			font-size: 12px;
+			color: #94a3b8;
+			font-weight: 500;
+			letter-spacing: 0.01em;
+		}
+
+		/* ── CARD BASE ── */
+		.dash-card {
+			background: #fff;
+			border-radius: 16px;
+			box-shadow: 0 1px 8px rgba(0,0,0,0.06);
+			overflow: hidden;
+		}
+		.dash-card-header {
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			padding: 18px 20px 0;
+		}
+		.dash-card-header h3 {
+			font-size: 14px;
+			font-weight: 600;
+			color: #1a2332 !important;
+		}
+		.dash-card-body { padding: 12px 20px 20px; }
+
+		/* ── MIDDLE ROW ── */
+		.mid-row {
+			display: grid;
+			grid-template-columns: 1fr 1fr;
+			gap: 14px;
+			margin-bottom: 24px;
+		}
+		@media (max-width: 900px) { .mid-row { grid-template-columns: 1fr; } }
+
+		/* ── DETAILS GRID ── */
+		.details-grid {
+			display: grid;
+			grid-template-columns: 1fr 1fr;
+			gap: 14px;
+		}
+		.details-inner { padding: 16px 20px; }
+		.detail-label {
+			font-size: 11.5px;
+			font-weight: 600;
+			color: #4b7bec;
+			text-transform: none;
+			margin-bottom: 2px;
+		}
+		.detail-value {
+			font-size: 13px;
+			color: #374151;
+			font-weight: 500;
+			margin-bottom: 14px;
+		}
+		.detail-value:last-child { margin-bottom: 0; }
+
+		/* ── CHART ROWS ── */
+		.chart-row {
+			display: grid;
+			grid-template-columns: 1fr 1fr;
+			gap: 14px;
+			margin-bottom: 24px;
+		}
+		@media (max-width: 900px) { .chart-row { grid-template-columns: 1fr; } }
+
+		.chart-row-3 {
+			display: grid;
+			grid-template-columns: 1fr 1fr 1fr;
+			gap: 14px;
+			margin-bottom: 24px;
+		}
+		@media (max-width: 1100px) { .chart-row-3 { grid-template-columns: 1fr 1fr; } }
+		@media (max-width: 700px)  { .chart-row-3 { grid-template-columns: 1fr; } }
+
+		/* ── TABLE ── */
+		.dash-table-wrap { overflow-x: auto; }
+		#chartHistory {
+			width: 100% !important;
+			border-collapse: collapse;
+		}
+		/* jqGrid overrides */
+		/* select-all checkbox column */
+		.ui-jqgrid .ui-jqgrid-htable th.ui-th-column-header { min-width: 28px !important; }
+		.ui-jqgrid .cbox, .ui-jqgrid input[type=checkbox] { cursor: pointer; width: 15px; height: 15px; accent-color: #4b7bec; }
+		.ui-jqgrid .ui-jqgrid-htable th {
+			background: #f8fafc !important;
+			color: #64748b !important;
+			font-size: 12px !important;
+			font-weight: 600 !important;
+			border-bottom: 1px solid #e8edf3 !important;
+			padding: 10px 14px !important;
+		}
+		.ui-jqgrid .ui-jqgrid-btable td {
+			font-size: 13px !important;
+			color: #374151 !important;
+			border-bottom: 1px solid #f1f5f9 !important;
+			padding: 10px 14px !important;
+		}
+		.ui-jqgrid .ui-jqgrid-btable tr:hover td { background: #f8fafc !important; }
+
+		/* ── Filter dropdowns must not overflow their column: a <select>
+		   otherwise renders as wide as its widest <option> text. This is
+		   a per-element constraint only — it does NOT force a table-wide
+		   layout algorithm, so it can't cause jqGrid's own per-column
+		   widths (from colModel) to be overridden the way table-layout:
+		   fixed did. jqGrid keeps its header and body tables' column
+		   widths synchronized itself; we just keep filter controls from
+		   escaping their cell. ── */
+		.ui-jqgrid .ui-search-toolbar select,
+		.ui-jqgrid .ui-search-toolbar input {
+			width: 100% !important;
+			max-width: 100% !important;
+			box-sizing: border-box !important;
+		}
+
+		/* ── Selected row color: jqGrid highlights selected rows with its
+		   jQuery UI theme's default yellow (.ui-state-highlight). Override
+		   it to gray so it matches the rest of the dashboard's palette. ── */
+		.ui-jqgrid .ui-jqgrid-btable tr.ui-state-highlight td,
+		.ui-jqgrid .ui-jqgrid-btable tr.ui-state-highlight.ui-widget-content td {
+			background: #e2e8f0 !important;
+			color: #374151 !important;
+		}
+		.ui-jqgrid .ui-jqgrid-btable tr.ui-state-highlight:hover td {
+			background: #d8dee7 !important;
+		}
+
+		/* ── Filter row sizing: keeps the search-toolbar row tall enough
+		   for its dropdowns (Application/Release/Run) without overlapping
+		   the row around it. The Date column no longer has a filter
+		   control at all, so it needs no special sizing rule. ── */
+		.ui-jqgrid .ui-search-toolbar th {
+			height: auto !important;
+			vertical-align: top;
+		}
+
+		/* ── DOTS MENU ── */
+		.dots-btn {
+			background: none;
+			border: none;
+			cursor: pointer;
+			color: #94a3b8;
+			font-size: 18px;
+			line-height: 1;
+			padding: 2px 6px;
+			border-radius: 6px;
+		}
+		.dots-btn:hover { background: #f1f5f9; }
+
+		/* ── MODAL ── */
+		.modal-content { border-radius: 14px; border: none; box-shadow: 0 8px 40px rgba(0,0,0,0.16); }
+		.modal-header { border-bottom: 1px solid #f1f5f9; padding: 18px 22px; }
+		.modal-title { font-size: 15px; font-weight: 600; color: #1a2332; }
+		.modal-footer { border-top: 1px solid #f1f5f9; padding: 14px 22px; }
+		.btn-primary {
+			background: #4b7bec !important;
+			border-color: #4b7bec !important;
+			border-radius: 8px !important;
+			font-size: 13px !important;
+			font-weight: 500 !important;
+			padding: 7px 18px !important;
+		}
+		.btn-secondary {
+			background: #f1f5f9 !important;
+			border-color: #f1f5f9 !important;
+			color: #374151 !important;
+			border-radius: 8px !important;
+			font-size: 13px !important;
+		}
+
+		/* ── LOADER ── */
+		.overlay {
+			position: fixed; inset: 0;
+			background: rgba(255,255,255,0.75);
+			display: none;
+			align-items: center;
+			justify-content: center;
+			z-index: 9999;
+			font-size: 16px;
+			font-weight: 600;
+			color: #4b7bec;
+		}
+		#ajax-spinner {
+			position: fixed;
+			top: 18px; right: 24px;
+			z-index: 9998;
+			display: none;
+		}
+		.spinner-border {
+			width: 24px; height: 24px;
+			border: 3px solid #e2e8f0;
+			border-top-color: #4b7bec;
+			border-radius: 50%;
+			animation: spin 0.75s linear infinite;
+		}
+		@keyframes spin { to { transform: rotate(360deg); } }
+
+		/* ── ISSUE 5 FIX: In Progress spinning loader, only while a
+		   run is actually in progress (index.js toggles is-spinning). ── */
+		.inprog-icon svg {
+			transform-origin: 50% 50%;
+		}
+		.inprog-icon.is-spinning svg {
+			animation: spin-loader 0.9s linear infinite;
+		}
+		@keyframes spin-loader {
+			to { transform: rotate(360deg); }
+		}
+	</style>
+</head>
+
+<body>
+<!-- Required by global.js -->
+<span id="txt" style="display:none;"></span>
+
+<!-- TOP NAV -->
+<nav class="dash-nav">
+	<div class="dash-nav-inner">
+		<a href="index.html" class="active" id="dashboardLink">Dashboard</a>
+		<a href="index.html">Reset</a>
+		<a href="ExecutionSummary.html" id="IdExecutionSummary">Summary report</a>
+		<a href="#">System wise report</a>
+		<a href="javascript:history.go(0)">Refresh</a>
+		<a href="#" onclick="window.print()">Print</a>
+	</div>
+</nav>
+
+<!-- STAT TILES -->
+<div class="stat-tiles">
+	<!-- Targetted -->
+	<div class="stat-tile">
+		<div class="tile-icon">
+			<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+		</div>
+		<a id="statusTargetted">
+			<div class="tile-num" id="targetted">0</div>
+		</a>
+		<div class="tile-label">targetted</div>
+	</div>
+	<!-- Executed -->
+	<div class="stat-tile">
+		<div class="tile-icon">
+			<svg viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21"/></svg>
+		</div>
+		<a id="statusExecuted">
+			<div class="tile-num" id="executed">0</div>
+		</a>
+		<div class="tile-label">executed</div>
+	</div>
+	<!-- Passed -->
+	<div class="stat-tile">
+		<div class="tile-icon passed-icon">
+			<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="#22c55e"/><polyline points="7,12 10,15 17,9" stroke="#22c55e"/></svg>
+		</div>
+		<a id="statusPassed">
+			<div class="tile-num" id="passed">0</div>
+		</a>
+		<div class="tile-label">passed</div>
+	</div>
+	<!-- Failed -->
+	<div class="stat-tile">
+		<div class="tile-icon failed-icon">
+			<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="#ef4444"/><line x1="15" y1="9" x2="9" y2="15" stroke="#ef4444"/><line x1="9" y1="9" x2="15" y2="15" stroke="#ef4444"/></svg>
+		</div>
+		<a id="statusFailed">
+			<div class="tile-num" id="failed">0</div>
+		</a>
+		<div class="tile-label">failed</div>
+	</div>
+	<!-- Skipped -->
+	<div class="stat-tile">
+		<div class="tile-icon">
+			<svg viewBox="0 0 24 24"><polygon points="5,4 15,12 5,20"/><line x1="19" y1="4" x2="19" y2="20"/></svg>
+		</div>
+		<a id="statusSkipped">
+			<div class="tile-num" id="skipped">0</div>
+		</a>
+		<div class="tile-label">skipped</div>
+	</div>
+	<!-- In Progress -->
+	<div class="stat-tile">
+		<div class="tile-icon inprog-icon">
+			<svg viewBox="0 0 24 24">
+				<circle cx="12" cy="12" r="10" stroke="#e2e8f0" stroke-width="2"/>
+				<path d="M12 2a10 10 0 0 1 10 10" stroke="#4b7bec" stroke-width="2" stroke-linecap="round"/>
+			</svg>
+		</div>
+		<a id="statusInProgressed">
+			<div class="tile-num" id="inprogress">0</div>
+		</a>
+		<div class="tile-label">in progress</div>
+	</div>
+</div>
+
+<!-- CHART ROW 1 + DETAILS -->
+<div class="chart-row" style="margin-bottom:24px;">
+	<!-- Bar chart card -->
+	<div class="dash-card">
+		<div class="dash-card-header">
+			<h3>Test case results in Count</h3>
+			<button class="dots-btn">&#8942;</button>
+		</div>
+		<div class="dash-card-body">
+			<canvas id="chartContainer" style="height:300px;width:100%;"></canvas>
+		</div>
+	</div>
+
+	<!-- System + Execution details side by side -->
+	<div class="dash-card">
+		<div class="dash-card-header" style="padding-bottom:14px;">
+			<div style="display:grid;grid-template-columns:1fr 1fr;width:100%;gap:20px;">
+				<div>
+					<h3 style="margin-bottom:16px;">System details</h3>
+					<div class="detail-label">Executed by</div>
+					<div class="detail-value"><span id="ExecutedBy">NULL</span></div>
+					<div class="detail-label">Project Name</div>
+					<div class="detail-value"><span id="ProjectName">NULL</span></div>
+					<div class="detail-label">Environment</div>
+					<div class="detail-value"><span id="TargettedEnvironment">NULL</span></div>
+					<div class="detail-label">Browser</div>
+					<div class="detail-value"><span id="BrowserType">NULL</span></div>
+					<div class="detail-label">Release</div>
+					<div class="detail-value"><span id="Release">NULL</span></div>
+				</div>
+				<div>
+					<h3 style="margin-bottom:16px;">Execution details</h3>
+					<div class="detail-label">Run</div>
+					<div class="detail-value"><span id="Run">NULL</span></div>
+					<div class="detail-label">Execution Started</div>
+					<div class="detail-value"><span id="RunStarted">NULL</span></div>
+					<div class="detail-label">Execution Ended</div>
+					<div class="detail-value"><span id="RunEnded">NULL</span></div>
+					<div class="detail-label">Execution Time</div>
+					<div class="detail-value"><span id="TotalExecutionTime">NULL</span></div>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+
+<!-- CHART ROW 2: History + Pie -->
+<div class="chart-row" style="margin-bottom:24px;">
+	<div class="dash-card">
+		<div class="dash-card-header">
+			<h3>Test execution history</h3>
+			<button class="dots-btn">&#8942;</button>
+		</div>
+		<div class="dash-card-body">
+			<div id="LineHighChart" style="height:300px;width:100%;"></div>
+		</div>
+	</div>
+	<div class="dash-card">
+		<div class="dash-card-header">
+			<h3>Test case results</h3>
+			<button class="dots-btn">&#8942;</button>
+		</div>
+		<div class="dash-card-body">
+			<div id="morris" style="height:300px;width:100%;"></div>
+		</div>
+	</div>
+</div>
+
+<!-- EXECUTION TIME (3D bar) -->
+<div class="dash-card" style="margin-bottom:24px;">
+	<div class="dash-card-header">
+		<h3>Test Scenarios Execution Time in Seconds</h3>
+		<button class="dots-btn">&#8942;</button>
+	</div>
+	<div class="dash-card-body">
+		<div id="container" class="custom-container"></div>
+		<div id="sliders">
+			<div class="portlet-body">
+				<div id="chart_5" class="chart" style="height:100%;width:100%;"></div>
+				<div style="padding:12px 0 0; display:flex; gap:24px; flex-wrap:wrap;">
+					<div style="display:flex;align-items:center;gap:8px;">
+						<label style="font-size:12px;color:#64748b;font-weight:500;">Top Radius</label>
+						<input id="alpha" type="range" min="0" max="45" value="0" style="accent-color:#4b7bec;">
+						<span id="alpha-value" style="font-size:12px;color:#64748b;"></span>
+					</div>
+					<div style="display:flex;align-items:center;gap:8px;">
+						<label style="font-size:12px;color:#64748b;font-weight:500;">Angle</label>
+						<input id="beta" type="range" min="-45" max="45" value="0" style="accent-color:#4b7bec;">
+						<span id="beta-value" style="font-size:12px;color:#64748b;"></span>
+					</div>
+					<div style="display:flex;align-items:center;gap:8px;">
+						<label style="font-size:12px;color:#64748b;font-weight:500;">Depth</label>
+						<input id="depth" type="range" min="20" max="100" value="20" style="accent-color:#4b7bec;">
+						<span id="depth-value" style="font-size:12px;color:#64748b;"></span>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+
+<!-- HISTORY TABLE -->
+<div class="dash-card" style="margin-bottom:24px;">
+	<div class="dash-card-header">
+		<h3>Test Execution History</h3>
+		<button class="dots-btn">&#8942;</button>
+	</div>
+	<div class="dash-card-body dash-table-wrap">
+		<table id="chartHistory" align="center" style="height:387px;"></table>
+		<div id="gridpager"></div>
+	</div>
+</div>
+
+<!-- Auth Modal -->
+<div class="modal fade" id="authModal" tabindex="-1" role="dialog" aria-labelledby="authModalTitle" aria-hidden="true" data-backdrop="static" data-keyboard="false">
+	<div class="modal-dialog modal-dialog-centered" style="max-width:400px;" role="document">
+		<div class="modal-content">
+			<div class="modal-header" style="border-bottom:1px solid #f1f5f9;padding:18px 22px;">
+				<div style="display:flex;align-items:center;gap:10px;">
+					<div style="width:32px;height:32px;border-radius:8px;background:#fef2f2;display:flex;align-items:center;justify-content:center;">
+						<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+					</div>
+					<div>
+						<h5 class="modal-title" style="font-size:14px;font-weight:600;color:#1a2332;margin:0;" id="authModalTitle">Authentication required</h5>
+						<p style="font-size:12px;color:#94a3b8;margin:0;">This action requires admin credentials</p>
+					</div>
+				</div>
+			</div>
+			<div class="modal-body" style="padding:20px 22px;">
+				<div id="authError" style="display:none;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:10px 14px;margin-bottom:16px;font-size:12.5px;color:#dc2626;">
+					<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:6px;vertical-align:-2px;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+					Invalid username or password
+				</div>
+				<div style="margin-bottom:14px;">
+					<label style="font-size:11.5px;font-weight:600;color:#4b7bec;display:block;margin-bottom:5px;">Username</label>
+					<input type="text" id="authUsername" autocomplete="username"
+						   style="width:100%;padding:9px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:13.5px;font-family:'DM Sans',sans-serif;outline:none;transition:border 0.15s;color:#1a2332;"
+						   placeholder="Enter username"
+						   onfocus="this.style.borderColor='#4b7bec'" onblur="this.style.borderColor='#e2e8f0'">
+				</div>
+				<div>
+					<label style="font-size:11.5px;font-weight:600;color:#4b7bec;display:block;margin-bottom:5px;">Password</label>
+					<div style="position:relative;">
+						<input type="password" id="authPassword" autocomplete="current-password"
+							   style="width:100%;padding:9px 38px 9px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:13.5px;font-family:'DM Sans',sans-serif;outline:none;transition:border 0.15s;color:#1a2332;"
+							   placeholder="Enter password"
+							   onfocus="this.style.borderColor='#4b7bec'" onblur="this.style.borderColor='#e2e8f0'"
+							   onkeydown="if(event.key==='Enter')submitAuth()">
+						<button onclick="toggleAuthPwd()" tabindex="-1"
+								style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;padding:2px;color:#94a3b8;">
+							<svg id="eyeIcon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+						</button>
+					</div>
+				</div>
+			</div>
+			<div class="modal-footer" style="border-top:1px solid #f1f5f9;padding:14px 22px;gap:8px;">
+				<button type="button" id="authSubmitBtn" class="btn btn-primary" onclick="submitAuth()" style="min-width:90px;">
+					<span id="authBtnText">Verify</span>
+				</button>
+				<button type="button" class="btn btn-secondary" onclick="cancelAuth()">Cancel</button>
+			</div>
+		</div>
+	</div>
+</div>
+
+<!-- Archive Modal -->
+<div class="modal fade" id="archiveModal" tabindex="-1" role="dialog" aria-labelledby="archiveModalTitle" aria-hidden="true">
+	<div class="modal-dialog modal-dialog-centered" style="width:36.5vw" role="document">
+		<div class="modal-content">
+			<div class="modal-header">
+				<h5 class="modal-title" id="archiveModalTitle">Archive</h5>
+			</div>
+			<div class="modal-body">
+				<div class="content"></div>
+			</div>
+			<div class="modal-footer">
+				<button type="button" class="btn btn-primary">OK</button>
+				<button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+			</div>
+		</div>
+	</div>
+</div>
+
+<div id="ajax-loader" class="overlay">
+	<div class="text">Wait...</div>
+</div>
+<div class="clearfix" id="ajax-spinner">
+	<div class="spinner-border float-right" role="status">
+		<span class="sr-only">Loading...</span>
+	</div>
+</div>
+
+</body>
+
+</html>

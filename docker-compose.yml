@@ -1,0 +1,66 @@
+version: '3.8'
+services:
+  mysql_db:
+    container_name: mysql
+    image: mysql/mysql-server
+    environment:
+      MYSQL_DATABASE: 'reports_db'
+      MYSQL_USER: 'reports_user'
+      MYSQL_PASSWORD: 'password'
+    restart: always
+    healthcheck:
+      test: "/usr/bin/mysql --user=reports_user --password=password --execute \"show databases;\""
+      interval: 5s
+      retries: 5
+      timeout: 1s
+    volumes:
+      - ./mysql:/var/lib/mysql
+
+  db_admin:
+    container_name: mysqldb
+    image: adminer
+    depends_on:
+      mysql_db:
+        condition: service_healthy
+    restart: always
+    ports:
+      - 9090:8080
+
+  backend:
+    container_name: backend
+    image: qatlas/backend
+    restart: always
+    depends_on:
+      mysql_db:
+        condition: service_healthy
+    volumes:
+      - .:/app/data
+      - ./hdump:/app/data/hdump
+    environment:
+      - spring_profiles_active=container
+      - app.open-api.servers[0].url=http://localhost:9091
+      - app.open-api.servers[0].description=Local Server
+      - JAVA_OPTS=-XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/app/data/hdump -Xmx1024m -XX:ReservedCodeCacheSize=32M -XX:MaxDirectMemorySize=10M
+    mem_limit: 3072M
+
+  web:
+    container_name: frontend
+    image: qatlas/frontend
+    restart: always
+    depends_on:
+      - backend
+    ports:
+      - 9091:80
+    volumes:
+      - ./attachments:/app/data/attachment:ro
+  web-react:
+    container_name: frontend-react
+    build:
+      context: ./qatlas-ui
+    restart: always
+    depends_on:
+      - backend
+    ports:
+      - 9092:80
+    volumes:
+      - ./attachments:/app/data/attachment:ro

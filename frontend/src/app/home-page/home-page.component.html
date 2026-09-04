@@ -1,0 +1,23 @@
+<div class="alert" style="background-color: lightslategray;color: white;font-size: medium;" role="alert">
+    Please select Application and Environment to view execution dashboard!
+  </div>
+  <form [formGroup] ="searchForm" (ngSubmit) = "onSubmit(searchForm.value)" class="needs-validation">
+    <mat-form-field appearance="fill">
+    <mat-label>Select Application</mat-label>
+    <mat-select formControlName="application" required>
+        <mat-option>-select-</mat-option>
+      <mat-option *ngFor="let app of applications" [value]="app.id">{{app.name}}</mat-option>
+    </mat-select>
+  </mat-form-field>
+  <br>
+  <mat-form-field appearance="fill">
+    <mat-label>Select Environment</mat-label>
+    <mat-select formControlName="environment">
+        <mat-option>-select-</mat-option>
+        <mat-option *ngFor="let env of environments" [value]="env.id">{{env.name}}</mat-option>
+    </mat-select>
+  </mat-form-field>
+    <br>
+<input type="submit" class="btn btn-primary" value="Search">
+</form>
+

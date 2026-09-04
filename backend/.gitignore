@@ -1,0 +1,13 @@
+/.idea/
+/derby.log
+/reporting.iml
+/target/
+/db/
+/logs/
+/*.iml
+/attachments/
+.DS_Store
+Thumbs.db
+/.project
+/.classpath
+/.settings

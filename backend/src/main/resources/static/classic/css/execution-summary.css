@@ -1,0 +1,66 @@
+.auto-style1 {
+    font-style: italic;
+    font-weight: bold;
+    text-align: Right;
+}
+.btn-group,row {
+    color: red;
+    width: 97.5%;
+    float: none;
+    margin: 5px auto;
+    display: block;
+}
+.row{
+    margin-left: 0.5%;
+    margin-right: 0.5%;
+}
+tr.ui-search-toolbar table.ui-search-table {
+    width: 100%;
+}
+
+#sopt_menu {
+    position: absolute;
+}
+
+#testStepsModal .carousel-indicators {
+    margin-bottom: 5% !important;
+}
+
+#testStepsModal .carousel-control.left, .carousel-control.right {
+    margin-bottom: 15% !important;
+}
+
+#testStepsModal .card-text .fas {
+    margin-right: 5px;
+}
+
+#testStepsModal .modal-dialog {
+    width: 80% !important;
+}
+
+#testStepsModal .modal-header {
+    border-bottom: none;
+    padding-top: 0;
+    padding-bottom: 0;
+}
+
+#testStepsModal .modal-body {
+    padding-top: 0;
+}
+
+#testStepsModal .card-body {
+    padding-top: 0 !important;
+}
+
+#testStepsModal.modal {
+    top: -20px;
+}
+
+ol.carousel-indicators li {
+    box-shadow: 0 0.5rem 0.5rem rgba(0, 0, 0, 0.15) !important;
+    background-color: #337ab7 !important;
+}
+
+.carousel-indicators .active {
+    background-color: #337ab7 !important;
+}

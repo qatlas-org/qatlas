@@ -1,0 +1,143 @@
+<div *ngIf="selectedExecution">
+<span><h4>Ongoing Execution:&nbsp; {{selectedExecution.name}}</h4></span>
+<hr>
+<table class="table mat-elevation-z8">
+    <thead class="header-bg-color">
+        <tr>
+            <th scope="col">Application</th>
+            <th scope="col">Environment</th>
+            <th scope="col">Browser</th>
+            <th scope="col">Operating System</th>
+            <!-- <th scope="col">System Name</th> -->
+            <!-- <th scope="col">Executed By</th> -->
+            <th scope="col">Start Time</th>
+            <th scope="col">End Time</th>
+            <th scope="col">Status</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>{{selectedExecution.applicationName}}</td>
+            <td>{{selectedExecution.environmentName}}</td>
+            <td>{{selectedExecution.browser}}</td>
+            <td>{{selectedExecution.operatingSystem}}</td>
+            <!-- <td>{{selectedExecution.systemName}}</td> -->
+            <!-- <td>{{selectedExecution.executedBy}}</td> -->
+            <td>{{selectedExecution.startTime | date }}</td>
+            <td>{{selectedExecution.endTime | date }}</td>
+            <td>status</td>
+        </tr>
+    </tbody>
+</table>
+<br>
+<div class="row">
+    <div class="col-12">
+        <h4><u>Test Cases</u></h4>
+    </div>
+    <div class="col-sm-3 m-sm-3">
+        <button type="button" class="btn btn-info">
+            Targeted: {{selectedExecution.targetedTestCaseCount}} (TODO)
+          </button>
+    </div>
+    <div class="col-sm-3 m-sm-3">
+        <button type="button" class="btn btn-info">
+            Executed: {{selectedExecution.executedTestCaseCount}}(TODO)
+          </button>
+    </div>
+    <div class="col-sm-3 m-sm-3">
+        <button type="button" class="btn btn-info">
+            Skipped: {{selectedExecution.skippedTestCaseCount}}(TODO)
+        </button>
+    </div>
+    <div class="col-sm-3 m-sm-3">
+        <a  [routerLink]="['/execution',selectedExecution.id,'PASSED']">
+        <button type="button" class="btn btn-success">
+            Passed: {{selectedExecution.passedTestCaseCount}}
+          </button>
+        </a>
+    </div>
+    <div class="col-sm-3 m-sm-3">
+        <a  [routerLink]="['/execution',selectedExecution.id,'FAILED']">
+        <button type="button" class="btn btn-danger">
+            Failed: {{selectedExecution.failedTestCaseCount}}
+        </button>
+    </a>
+    </div>
+    
+    <div class="col-sm-3 m-sm-3">
+        <a  [routerLink]="['/execution',selectedExecution.id,'PROGRESS']">
+        <button type="button" class="btn btn-primary">
+            InProgress: {{selectedExecution.inProgressTestCaseCount}}
+        </button>
+    </a>
+    </div>
+</div>
+</div>
+<hr>
+<h4>Executions History:</h4>
+<div class="mat-elevation-z8">
+<table mat-table matSort [dataSource]="dataSource" class="mat-elevation-z8" style="width: 100%;">
+  <!--- Note that these columns can be defined in any order.
+        The actual rendered columns are set as a property on the row definition" -->
+  <ng-container matColumnDef="position">
+    <th mat-header-cell *matHeaderCellDef > # </th>
+    <td mat-cell *matCellDef="let element;let i = index">
+      <a [title] ="element.name +' details'" [routerLink]="" (click) = "selectExecution(element.id)">
+      {{i+1}}
+    </a></td>
+  </ng-container>
+
+  <ng-container matColumnDef="name">
+    <th mat-header-cell *matHeaderCellDef > Name </th>
+    <td mat-cell *matCellDef="let element"> {{element.applicationName}} </td>
+  </ng-container>
+
+  <ng-container matColumnDef="environment">
+    <th mat-header-cell *matHeaderCellDef > Environment </th>
+    <td mat-cell *matCellDef="let element"> {{element.environmentName}} </td>
+  </ng-container>
+
+  <ng-container matColumnDef="browser">
+    <th mat-header-cell *matHeaderCellDef > Browser </th>
+    <td mat-cell *matCellDef="let element">{{element.browser}}</td>
+  </ng-container>
+
+  <ng-container matColumnDef="os">
+    <th mat-header-cell *matHeaderCellDef > OS </th>
+    <td mat-cell *matCellDef="let element"> {{element.operatingSystem}} </td>
+  </ng-container>
+
+  <ng-container matColumnDef="systemName">
+    <th mat-header-cell *matHeaderCellDef > System Name </th>
+    <td mat-cell *matCellDef="let element"> {{element.systemName}} </td>
+  </ng-container>
+
+  <ng-container matColumnDef="executedBy">
+    <th mat-header-cell *matHeaderCellDef > Executed By </th>
+    <td mat-cell *matCellDef="let element"> {{element.executedBy}} </td>
+  </ng-container>
+
+  <ng-container matColumnDef="startTime">
+    <th mat-header-cell *matHeaderCellDef > Start Time </th>
+    <td mat-cell *matCellDef="let element"> {{element.startTime | date: 'medium'}} </td>
+  </ng-container>
+
+  <ng-container matColumnDef="endTime">
+    <th mat-header-cell *matHeaderCellDef > End Time </th>
+    <td mat-cell *matCellDef="let element"> {{element.endTime | date: 'medium'}} </td>
+  </ng-container>
+
+  <ng-container matColumnDef="status">
+    <th mat-header-cell *matHeaderCellDef > Status </th>
+    <td mat-cell *matCellDef="let element"> status </td>
+  </ng-container>
+
+  <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+  <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+</table>
+<mat-paginator [pageSizeOptions]="[5, 10, 20]" showFirstLastButtons></mat-paginator>
+</div>
+<br>
+<button type="button" class="btn btn-primary" (click)="goBack()">Back</button>
+
+

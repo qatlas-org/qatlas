@@ -1,0 +1,42 @@
+@import 'tailwindcss';
+
+/* Self-hosted font — bundled via @fontsource/inter, no external network call
+   to fonts.googleapis.com. Weights kept minimal to keep bundle small. */
+@import '@fontsource/inter/400.css';
+@import '@fontsource/inter/500.css';
+@import '@fontsource/inter/600.css';
+@import '@fontsource/inter/700.css';
+
+@theme {
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+
+  --color-status-passed: #16a34a;
+  --color-status-failed: #dc2626;
+  --color-status-warning: #d97706;
+  --color-status-progress: #2563eb;
+  --color-status-skipped: #6b7280;
+
+  /* Neutral volume-metric color, deliberately distinct from --color-status-progress
+     (which means "Running") so charts don't visually collide with status meaning. */
+  --color-chart-neutral: #3b5a8a;
+  --color-chart-neutral-light: #6b87b8;
+
+
+  --color-surface: #ffffff;
+  --color-surface-muted: #f8fafc;
+  --color-border: #e2e8f0;
+  --color-ink: #0f172a;
+  --color-ink-muted: #64748b;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  font-family: var(--font-sans);
+  background: var(--color-surface-muted);
+  color: var(--color-ink);
+}

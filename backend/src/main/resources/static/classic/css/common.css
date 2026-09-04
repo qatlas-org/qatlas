@@ -1,0 +1,47 @@
+a.action-icon i.fas {
+    margin: 5px;
+    cursor: pointer;
+}
+
+.align-right-with-padding {
+    text-align: right !important;
+    padding-right: 10px !important;
+}
+
+#MainReport tr {
+    cursor: pointer;
+}
+
+@keyframes shadowGreen {
+    0% {
+        box-shadow: none;
+    }
+
+    100% {
+        box-shadow: inset 0px 11px 8px -10px green, inset 0px -11px 8px -10px green;
+    }
+}
+
+@keyframes shadowRed {
+    0% {
+        box-shadow: none;
+    }
+
+    100% {
+        box-shadow: inset 0px 11px 8px -10px red, inset 0px -11px 8px -10px red;
+    }
+}
+
+.successful {
+    animation-name: shadowGreen;
+    animation-duration: 2s;
+    animation-iteration-count: 1;
+    animation-timing-function: ease-in-out;
+}
+
+.failure {
+    animation-name: shadowRed;
+    animation-duration: 2s;
+    animation-iteration-count: 1;
+    animation-timing-function: ease-in-out;
+}
