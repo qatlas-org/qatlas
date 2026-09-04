@@ -9,6 +9,9 @@ WORKDIR /workspace
 # separately from source changes (faster rebuilds).
 COPY pom.xml .
 COPY backend/pom.xml backend/pom.xml
+COPY api-client/pom.xml api-client/pom.xml
+COPY frontend/pom.xml frontend/pom.xml
+COPY qatlas-ui/pom.xml qatlas-ui/pom.xml
 RUN mvn -B -pl backend -am dependency:go-offline -q || true
 
 COPY backend/src backend/src
