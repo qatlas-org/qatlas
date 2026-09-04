@@ -6,10 +6,10 @@ services:
     environment:
       MYSQL_DATABASE: 'reports_db'
       MYSQL_USER: 'reports_user'
-      MYSQL_PASSWORD: 'password'
+      MYSQL_PASSWORD: '${MYSQL_PASSWORD:-password}'
     restart: always
     healthcheck:
-      test: "/usr/bin/mysql --user=reports_user --password=password --execute \"show databases;\""
+      test: "/usr/bin/mysql --user=reports_user --password=${MYSQL_PASSWORD:-password} --execute \"show databases;\""
       interval: 5s
       retries: 5
       timeout: 1s
@@ -24,43 +24,44 @@ services:
         condition: service_healthy
     restart: always
     ports:
-      - 9090:8080
+      - "${ADMINER_PORT:-9090}:8080"
 
   backend:
     container_name: backend
-    image: qatlas/backend
+    image: qatlas/backend:${QATLAS_VERSION:-latest}
     restart: always
     depends_on:
       mysql_db:
         condition: service_healthy
+    ports:
+      - "${BACKEND_PORT:-8080}:8080"
     volumes:
-      - .:/app/data
-      - ./hdump:/app/data/hdump
+      - ./data:/app/data
+      - ./data/hdump:/app/data/hdump
     environment:
-      - spring_profiles_active=container
-      - app.open-api.servers[0].url=http://localhost:9091
+      - app.open-api.servers[0].url=http://localhost:${UI_PORT:-9092}
       - app.open-api.servers[0].description=Local Server
       - JAVA_OPTS=-XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/app/data/hdump -Xmx1024m -XX:ReservedCodeCacheSize=32M -XX:MaxDirectMemorySize=10M
     mem_limit: 3072M
 
   web:
     container_name: frontend
-    image: qatlas/frontend
+    image: qatlas/frontend:${QATLAS_VERSION:-latest}
     restart: always
     depends_on:
       - backend
     ports:
-      - 9091:80
+      - "${LEGACY_UI_PORT:-9091}:80"
     volumes:
-      - ./attachments:/app/data/attachment:ro
+      - ./data/attachments:/app/data/attachment:ro
+
   web-react:
     container_name: frontend-react
-    build:
-      context: ./qatlas-ui
+    image: qatlas/qatlas-ui:${QATLAS_VERSION:-latest}
     restart: always
     depends_on:
       - backend
     ports:
-      - 9092:80
+      - "${UI_PORT:-9092}:80"
     volumes:
-      - ./attachments:/app/data/attachment:ro
+      - ./data/attachments:/app/data/attachment:ro
