@@ -5,7 +5,7 @@
     <artifactId>qatlas-client</artifactId>
     <packaging>jar</packaging>
     <name>qatlas-client</name>
-    <version>1.0.0</version>
+    <version>1.0.1</version>
     <url>https://qatlas.org</url>
     <description>REST client library for the QAtlas test reporting API</description>
     <scm>
@@ -19,8 +19,6 @@
             <url>https://central.sonatype.com/api/v1/publisher</url>
         </repository>
     </distributionManagement>
-
-
     <licenses>
         <license>
             <name>Apache License, Version 2.0</name>
@@ -171,7 +169,7 @@
             <plugin>
                 <groupId>org.sonatype.central</groupId>
                 <artifactId>central-publishing-maven-plugin</artifactId>
-                <version>0.5.0</version>
+                <version>0.11.0</version>
                 <extensions>true</extensions>
                 <configuration>
                     <publishingServerId>central</publishingServerId>
