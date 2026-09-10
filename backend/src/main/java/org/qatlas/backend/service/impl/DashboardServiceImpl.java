@@ -59,6 +59,7 @@ public class DashboardServiceImpl implements DashboardService {
         LocalDateTime effectiveFrom = from;
 
         if (effectiveFrom == null) {
+
             effectiveFrom =
                     testExecutionRepository.findDashboardEarliestExecutionTime();
 
@@ -141,13 +142,16 @@ public class DashboardServiceImpl implements DashboardService {
         long executed = passed + failed + warning;
 
         if (executed > 0) {
+
             double passRate =
                     ((double) passed / executed) * 100.0;
 
             stats.setPassRate(
                     Math.round(passRate * 10.0) / 10.0
             );
+
         } else {
+
             stats.setPassRate(null);
         }
     }
@@ -281,20 +285,58 @@ public class DashboardServiceImpl implements DashboardService {
             DashboardStatsVO stats,
             LocalDateTime from) {
 
-        LocalDateTime runningSince = LocalDateTime.now().minusHours(24);
+        LocalDateTime runningSince =
+                LocalDateTime.now().minusHours(24);
 
         /*
          * Total executions per application in the selected range.
          */
-        Map<Long, Long> totalByApplication = new HashMap<>();
+        Map<Long, Long> totalByApplication =
+                new HashMap<>();
 
         for (Object[] row :
                 testExecutionRepository.countDashboardExecutionsByApplication(from)) {
 
-            Long applicationId = ((Number) row[0]).longValue();
-            long count = ((Number) row[1]).longValue();
+            Long applicationId =
+                    ((Number) row[0]).longValue();
 
-            totalByApplication.put(applicationId, count);
+            long count =
+                    ((Number) row[1]).longValue();
+
+            totalByApplication.put(
+                    applicationId,
+                    count
+            );
+        }
+
+
+        /*
+         * Executors / machines used by each application
+         * in the selected dashboard range.
+         *
+         * This is used by the "Executed by" filter.
+         */
+        Map<Long, List<String>> executorsByApplication =
+                new HashMap<>();
+
+        for (Object[] row :
+                testExecutionRepository
+                        .countDashboardExecutionsByApplicationAndMachine(from)) {
+
+            Long applicationId =
+                    ((Number) row[0]).longValue();
+
+            String executor =
+                    row[1] != null
+                            ? row[1].toString()
+                            : "Unknown";
+
+            executorsByApplication
+                    .computeIfAbsent(
+                            applicationId,
+                            key -> new ArrayList<>()
+                    )
+                    .add(executor);
         }
 
 
@@ -304,32 +346,49 @@ public class DashboardServiceImpl implements DashboardService {
          * The repository query classifies every execution once as
          * RUNNING / FAILED / WARNING / PASSED.
          */
-        Map<Long, Map<String, Long>> statusByApplication = new HashMap<>();
+        Map<Long, Map<String, Long>> statusByApplication =
+                new HashMap<>();
 
         for (Object[] row :
-                testCaseRepository.countDashboardExecutionsByApplicationAndStatus(
-                        from,
-                        runningSince)) {
+                testCaseRepository
+                        .countDashboardExecutionsByApplicationAndStatus(
+                                from,
+                                runningSince)) {
 
-            Long applicationId = ((Number) row[0]).longValue();
-            String status = row[1].toString();
-            long count = ((Number) row[2]).longValue();
+            Long applicationId =
+                    ((Number) row[0]).longValue();
+
+            String status =
+                    row[1].toString();
+
+            long count =
+                    ((Number) row[2]).longValue();
 
             statusByApplication
-                    .computeIfAbsent(applicationId, key -> new HashMap<>())
-                    .put(status, count);
+                    .computeIfAbsent(
+                            applicationId,
+                            key -> new HashMap<>()
+                    )
+                    .put(
+                            status,
+                            count
+                    );
         }
 
 
         /*
-         * Latest execution for each application, retrieved in one query.
+         * Latest execution for each application,
+         * retrieved in one query.
          */
-        Map<Long, TestExecution> latestByApplication = new HashMap<>();
+        Map<Long, TestExecution> latestByApplication =
+                new HashMap<>();
 
         List<TestExecution> latestExecutions =
-                testExecutionRepository.findDashboardLatestExecutionsByApplication(from);
+                testExecutionRepository
+                        .findDashboardLatestExecutionsByApplication(from);
 
         for (TestExecution execution : latestExecutions) {
+
             latestByApplication.put(
                     execution.getApplication().getId(),
                     execution
@@ -344,52 +403,89 @@ public class DashboardServiceImpl implements DashboardService {
         Map<Long, Map<ExecutionStatus, Long>> latestExecutionStatuses =
                 new HashMap<>();
 
-        List<Long> latestExecutionIds = latestExecutions.stream()
-                .map(TestExecution::getId)
-                .toList();
+        List<Long> latestExecutionIds =
+                latestExecutions.stream()
+                        .map(TestExecution::getId)
+                        .toList();
 
         if (!latestExecutionIds.isEmpty()) {
 
             for (Object[] row :
-                    testCaseRepository.countByExecutionIdsGroupedByStatus(
-                            latestExecutionIds)) {
+                    testCaseRepository
+                            .countByExecutionIdsGroupedByStatus(
+                                    latestExecutionIds)) {
 
-                Long executionId = ((Number) row[0]).longValue();
-                ExecutionStatus status = (ExecutionStatus) row[1];
-                long count = ((Number) row[2]).longValue();
+                Long executionId =
+                        ((Number) row[0]).longValue();
+
+                ExecutionStatus status =
+                        (ExecutionStatus) row[1];
+
+                long count =
+                        ((Number) row[2]).longValue();
 
                 latestExecutionStatuses
                         .computeIfAbsent(
                                 executionId,
                                 key -> new HashMap<>()
                         )
-                        .put(status, count);
+                        .put(
+                                status,
+                                count
+                        );
             }
         }
 
 
         /*
          * Build one project summary for every configured application.
-         * Applications with no executions in the selected range are still
-         * returned with zero totals and no latest execution.
+         *
+         * Applications with no executions in the selected range
+         * are still returned with zero totals and no latest execution.
          */
         List<DashboardStatsVO.ProjectSummary> projects =
                 new ArrayList<>();
 
-        for (Application application : applicationRepository.findAll()) {
+        for (Application application :
+                applicationRepository.findAll()) {
 
             DashboardStatsVO.ProjectSummary project =
                     new DashboardStatsVO.ProjectSummary();
 
-            Long applicationId = application.getId();
+            Long applicationId =
+                    application.getId();
 
-            project.setApplicationId(applicationId);
-            project.setApplicationName(application.getName());
-            project.setApplicationDescription(application.getDescription());
+            project.setApplicationId(
+                    applicationId
+            );
+
+            project.setApplicationName(
+                    application.getName()
+            );
+
+            project.setApplicationDescription(
+                    application.getDescription()
+            );
 
             project.setTotalExecutions(
-                    totalByApplication.getOrDefault(applicationId, 0L)
+                    totalByApplication.getOrDefault(
+                            applicationId,
+                            0L
+                    )
             );
+
+            /*
+             * Important:
+             * Keep every executor that ran this project
+             * during the selected dashboard range.
+             */
+            project.setExecutors(
+                    executorsByApplication.getOrDefault(
+                            applicationId,
+                            List.of()
+                    )
+            );
+
 
             Map<String, Long> projectStatuses =
                     statusByApplication.getOrDefault(
@@ -398,16 +494,31 @@ public class DashboardServiceImpl implements DashboardService {
                     );
 
             project.setPassedExecutions(
-                    projectStatuses.getOrDefault("PASSED", 0L)
+                    projectStatuses.getOrDefault(
+                            "PASSED",
+                            0L
+                    )
             );
+
             project.setFailedExecutions(
-                    projectStatuses.getOrDefault("FAILED", 0L)
+                    projectStatuses.getOrDefault(
+                            "FAILED",
+                            0L
+                    )
             );
+
             project.setWarningExecutions(
-                    projectStatuses.getOrDefault("WARNING", 0L)
+                    projectStatuses.getOrDefault(
+                            "WARNING",
+                            0L
+                    )
             );
+
             project.setRunningExecutions(
-                    projectStatuses.getOrDefault("RUNNING", 0L)
+                    projectStatuses.getOrDefault(
+                            "RUNNING",
+                            0L
+                    )
             );
 
 
@@ -416,10 +527,21 @@ public class DashboardServiceImpl implements DashboardService {
 
             if (latest != null) {
 
-                project.setLatestExecutionId(latest.getId());
-                project.setLatestExecutedBy(latest.getExecutedBy());
-                project.setLatestSystemName(latest.getSystemName());
-                project.setLatestStartTime(latest.getStartTime());
+                project.setLatestExecutionId(
+                        latest.getId()
+                );
+
+                project.setLatestExecutedBy(
+                        latest.getExecutedBy()
+                );
+
+                project.setLatestSystemName(
+                        latest.getSystemName()
+                );
+
+                project.setLatestStartTime(
+                        latest.getStartTime()
+                );
 
                 project.setLatestStatus(
                         determineExecutionStatus(
@@ -451,11 +573,17 @@ public class DashboardServiceImpl implements DashboardService {
             return "RUNNING";
         }
 
-        if (statuses.getOrDefault(ExecutionStatus.FAILED, 0L) > 0) {
+        if (statuses.getOrDefault(
+                ExecutionStatus.FAILED,
+                0L) > 0) {
+
             return "FAILED";
         }
 
-        if (statuses.getOrDefault(ExecutionStatus.WARNING, 0L) > 0) {
+        if (statuses.getOrDefault(
+                ExecutionStatus.WARNING,
+                0L) > 0) {
+
             return "WARNING";
         }
 
@@ -473,6 +601,8 @@ public class DashboardServiceImpl implements DashboardService {
             return ((Date) value).toLocalDate();
         }
 
-        return LocalDate.parse(value.toString());
+        return LocalDate.parse(
+                value.toString()
+        );
     }
 }
