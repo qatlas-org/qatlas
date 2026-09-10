@@ -12,8 +12,12 @@ export const useDashboardStats = (range: DateRangeKey) =>
     useQuery({
         queryKey: ['dashboard', range],
         queryFn: () => {
-            const from = rangeStartDate(range);
 
+            if (range === 'ALL') {
+                return api.dashboard.stats();
+            }
+
+            const from = rangeStartDate(range);
 
             const year = from.getFullYear();
             const month = String(from.getMonth() + 1).padStart(2, '0');
@@ -25,6 +29,7 @@ export const useDashboardStats = (range: DateRangeKey) =>
         },
         staleTime: REPORT_STALE_TIME,
     });
+
 export const useApplications = () =>
   useQuery({ queryKey: ['applications'], queryFn: api.applications.list, staleTime: REPORT_STALE_TIME });
 

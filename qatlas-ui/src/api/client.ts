@@ -59,10 +59,10 @@ export const api = {
     list: () => http.get<Environment[]>('/environment').then((r) => r.data),
   },
   dashboard: {
-    stats: (from: string) =>
+    stats: (from?: string) =>
         http
             .get<DashboardStats>('/dashboard', {
-              params: { from },
+              params: from ? { from } : undefined,
             })
             .then((r) => r.data),
   },
