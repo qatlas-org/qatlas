@@ -1,13 +1,30 @@
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../api/client';
 import type { ExecutionStatus } from '../types/domain';
-
+import { rangeStartDate, type DateRangeKey } from '../lib/dateRange';
 // Stale time is deliberately generous: this is a reporting tool over
 // already-completed test runs, so data doesn't change under the user's feet.
 // That means switching between screens re-uses cache instead of re-fetching,
 // which is most of where the "faster response" requirement comes from.
 const REPORT_STALE_TIME = 60_000;
 
+export const useDashboardStats = (range: DateRangeKey) =>
+    useQuery({
+        queryKey: ['dashboard', range],
+        queryFn: () => {
+            const from = rangeStartDate(range);
+
+
+            const year = from.getFullYear();
+            const month = String(from.getMonth() + 1).padStart(2, '0');
+            const day = String(from.getDate()).padStart(2, '0');
+
+            return api.dashboard.stats(
+                `${year}-${month}-${day}T00:00:00`
+            );
+        },
+        staleTime: REPORT_STALE_TIME,
+    });
 export const useApplications = () =>
   useQuery({ queryKey: ['applications'], queryFn: api.applications.list, staleTime: REPORT_STALE_TIME });
 

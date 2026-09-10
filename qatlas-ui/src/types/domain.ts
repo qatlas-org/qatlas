@@ -5,6 +5,31 @@ export type ExecutionStatus = 'PROGRESS' | 'PASSED' | 'FAILED' | 'WARNING' | 'SK
 
 export type AttachmentType = 'SNAPSHOT' | 'OTHER';
 
+export interface DashboardDailyTrend {
+  date: string;
+  executions: number;
+  passed: number;
+  failed: number;
+  warning: number;
+}
+
+export interface DashboardMachineStats {
+  machine: string;
+  executions: number;
+}
+
+export interface DashboardStats {
+  from: string;
+  activeProjects: number;
+  executions: number;
+  passed: number;
+  failed: number;
+  warning: number;
+  passRate: number | null;
+  currentlyRunning: number;
+  dailyTrend: DashboardDailyTrend[];
+  executionsByMachine: DashboardMachineStats[];
+}
 export interface Application {
   id: number;
   name: string;

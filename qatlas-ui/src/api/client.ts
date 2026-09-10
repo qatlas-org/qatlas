@@ -1,6 +1,7 @@
 import axios from 'axios';
 import type {
   Application,
+  DashboardStats,
   Environment,
   ExecutionStatus,
   TestCase,
@@ -43,6 +44,7 @@ http.interceptors.response.use(
 );
 
 export const api = {
+
   auth: {
     login: (username: string, password: string) =>
       http.post<{ token: string; username: string }>('/auth/login', { username, password }).then((r) => r.data),
@@ -56,7 +58,14 @@ export const api = {
   environments: {
     list: () => http.get<Environment[]>('/environment').then((r) => r.data),
   },
-
+  dashboard: {
+    stats: (from: string) =>
+        http
+            .get<DashboardStats>('/dashboard', {
+              params: { from },
+            })
+            .then((r) => r.data),
+  },
   executions: {
     list: () => http.get<TestExecution[]>('/test-execution').then((r) => r.data),
     getById: (id: number) => http.get<TestExecution>(`/test-execution/${id}`).then((r) => r.data),
