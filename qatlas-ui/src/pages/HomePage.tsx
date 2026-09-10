@@ -28,7 +28,7 @@ export function HomePage() {
   const [range, setRange] = useState<DateRangeKey>('30D');
   const [executor, setExecutor] = useState<string>('All');
   const [search, setSearch] = useState('');
-  const [sortMode, setSortMode] = useState<SortMode>('priority');
+  const [sortMode, setSortMode] = useState<SortMode>('recent');
   const [page, setPage] = useState(1);
 
   const cards = useMemo(() => {

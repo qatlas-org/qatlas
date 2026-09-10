@@ -6,6 +6,8 @@ import org.apache.commons.lang3.StringUtils;
 import jakarta.persistence.*;
 import java.io.File;
 import java.io.Serializable;
+import jakarta.persistence.Convert;
+import org.qatlas.backend.converter.AttachmentTypeConverter;
 
 @Entity
 @Table(name = "TEST_STEP_ATTACHMENT", schema = "reports_db")
@@ -26,9 +28,10 @@ public class TestStepAttachment implements Serializable {
         updatable = false
     )
     private TestStep testStep;
-
-    @Enumerated(EnumType.STRING)
+    
+    @Convert(converter = AttachmentTypeConverter.class)
     @Column(name = "ATTACHMENT_TYPE", nullable = false, updatable = false)
+
     private AttachmentType attachmentType;
 
     @Column(name = "ATTACHMENT_NAME", nullable = false, length = 50, updatable = false)
