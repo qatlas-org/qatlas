@@ -103,7 +103,29 @@ public interface TestExecutionRepository extends JpaRepository<TestExecution, Lo
     List<Object[]> countDashboardExecutionsByApplication(
             @Param("from") LocalDateTime from
     );
-
+    /**
+     * Dashboard execution counts grouped by application and executor/machine.
+     *
+     * COALESCE follows the same rule as the dashboard machine chart:
+     * prefer executedBy, otherwise use systemName.
+     *
+     * Row shape: [applicationId, executorOrMachine, executionCount]
+     */
+    @Query("""
+    SELECT e.application.id,
+           COALESCE(e.executedBy, e.systemName),
+           COUNT(e)
+    FROM TestExecution e
+    WHERE e.archived = false
+      AND e.startTime >= :from
+    GROUP BY e.application.id,
+             COALESCE(e.executedBy, e.systemName)
+    ORDER BY e.application.id,
+             COUNT(e) DESC
+    """)
+    List<Object[]> countDashboardExecutionsByApplicationAndMachine(
+            @Param("from") LocalDateTime from
+    );
 
     /**
      * Latest execution for each application in the selected range.

@@ -22,25 +22,143 @@ public class DashboardStatsVO {
     private long warning;
 
     private Double passRate;
+
     private List<ProjectSummary> projects = new ArrayList<>();
+
+    /**
+     * Number of executions currently running.
+     * This is a live metric and is not restricted by the selected date range.
+     */
+    private long currentlyRunning;
+
+    private List<DailyTrend> dailyTrend = new ArrayList<>();
+
+    private List<MachineStats> executionsByMachine = new ArrayList<>();
+
+
+    public LocalDateTime getFrom() {
+        return from;
+    }
+
+    public void setFrom(LocalDateTime from) {
+        this.from = from;
+    }
+
+    public long getActiveProjects() {
+        return activeProjects;
+    }
+
+    public void setActiveProjects(long activeProjects) {
+        this.activeProjects = activeProjects;
+    }
+
+    public long getExecutions() {
+        return executions;
+    }
+
+    public void setExecutions(long executions) {
+        this.executions = executions;
+    }
+
+    public long getPassed() {
+        return passed;
+    }
+
+    public void setPassed(long passed) {
+        this.passed = passed;
+    }
+
+    public long getFailed() {
+        return failed;
+    }
+
+    public void setFailed(long failed) {
+        this.failed = failed;
+    }
+
+    public long getWarning() {
+        return warning;
+    }
+
+    public void setWarning(long warning) {
+        this.warning = warning;
+    }
+
+    public Double getPassRate() {
+        return passRate;
+    }
+
+    public void setPassRate(Double passRate) {
+        this.passRate = passRate;
+    }
+
+    public List<ProjectSummary> getProjects() {
+        return projects;
+    }
+
+    public void setProjects(List<ProjectSummary> projects) {
+        this.projects = projects;
+    }
+
+    public long getCurrentlyRunning() {
+        return currentlyRunning;
+    }
+
+    public void setCurrentlyRunning(long currentlyRunning) {
+        this.currentlyRunning = currentlyRunning;
+    }
+
+    public List<DailyTrend> getDailyTrend() {
+        return dailyTrend;
+    }
+
+    public void setDailyTrend(List<DailyTrend> dailyTrend) {
+        this.dailyTrend = dailyTrend;
+    }
+
+    public List<MachineStats> getExecutionsByMachine() {
+        return executionsByMachine;
+    }
+
+    public void setExecutionsByMachine(List<MachineStats> executionsByMachine) {
+        this.executionsByMachine = executionsByMachine;
+    }
+
+
     public static class ProjectSummary {
 
         private Long applicationId;
+
         private String applicationName;
+
         private String applicationDescription;
 
         private Long latestExecutionId;
+
         private String latestExecutedBy;
+
         private String latestSystemName;
+
         private LocalDateTime latestStartTime;
 
         private String latestStatus;
 
         private long totalExecutions;
+
         private long passedExecutions;
+
         private long failedExecutions;
+
         private long warningExecutions;
+
         private long runningExecutions;
+
+        /**
+         * All executors/machines that executed this project
+         * within the selected dashboard date range.
+         */
+        private List<String> executors = new ArrayList<>();
+
 
         public Long getApplicationId() {
             return applicationId;
@@ -145,103 +263,14 @@ public class DashboardStatsVO {
         public void setRunningExecutions(long runningExecutions) {
             this.runningExecutions = runningExecutions;
         }
-    }
-    public List<ProjectSummary> getProjects() {
-        return projects;
-    }
 
-    public void setProjects(List<ProjectSummary> projects) {
-        this.projects = projects;
-    }
-    /**
-     * Number of executions currently running.
-     * This is a live metric and is not restricted by the selected date range.
-     */
-    private long currentlyRunning;
+        public List<String> getExecutors() {
+            return executors;
+        }
 
-    private List<DailyTrend> dailyTrend = new ArrayList<>();
-
-    private List<MachineStats> executionsByMachine = new ArrayList<>();
-
-
-    public LocalDateTime getFrom() {
-        return from;
-    }
-
-    public void setFrom(LocalDateTime from) {
-        this.from = from;
-    }
-
-    public long getActiveProjects() {
-        return activeProjects;
-    }
-
-    public void setActiveProjects(long activeProjects) {
-        this.activeProjects = activeProjects;
-    }
-
-    public long getExecutions() {
-        return executions;
-    }
-
-    public void setExecutions(long executions) {
-        this.executions = executions;
-    }
-
-    public long getPassed() {
-        return passed;
-    }
-
-    public void setPassed(long passed) {
-        this.passed = passed;
-    }
-
-    public long getFailed() {
-        return failed;
-    }
-
-    public void setFailed(long failed) {
-        this.failed = failed;
-    }
-
-    public long getWarning() {
-        return warning;
-    }
-
-    public void setWarning(long warning) {
-        this.warning = warning;
-    }
-
-    public Double getPassRate() {
-        return passRate;
-    }
-
-    public void setPassRate(Double passRate) {
-        this.passRate = passRate;
-    }
-
-    public long getCurrentlyRunning() {
-        return currentlyRunning;
-    }
-
-    public void setCurrentlyRunning(long currentlyRunning) {
-        this.currentlyRunning = currentlyRunning;
-    }
-
-    public List<DailyTrend> getDailyTrend() {
-        return dailyTrend;
-    }
-
-    public void setDailyTrend(List<DailyTrend> dailyTrend) {
-        this.dailyTrend = dailyTrend;
-    }
-
-    public List<MachineStats> getExecutionsByMachine() {
-        return executionsByMachine;
-    }
-
-    public void setExecutionsByMachine(List<MachineStats> executionsByMachine) {
-        this.executionsByMachine = executionsByMachine;
+        public void setExecutors(List<String> executors) {
+            this.executors = executors;
+        }
     }
 
 
