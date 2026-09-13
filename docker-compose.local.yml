@@ -1,0 +1,31 @@
+services:
+  backend:
+    image: qatlas/backend:${QATLAS_VERSION}
+    container_name: qatlas-backend
+    restart: unless-stopped
+    ports:
+      - "1900:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://reporting-mysql:3306/reports_db
+      SPRING_DATASOURCE_USERNAME: reports_user
+      SPRING_DATASOURCE_PASSWORD: password
+      JAVA_OPTS: -Xmx1024m
+    networks:
+      qatlas_default:
+        aliases:
+          - backend
+
+  ui:
+    image: qatlas/qatlas-ui:${QATLAS_VERSION}
+    container_name: qatlas-ui
+    restart: unless-stopped
+    ports:
+      - "1901:80"
+    depends_on:
+      - backend
+    networks:
+      - qatlas_default
+
+networks:
+  qatlas_default:
+    external: true

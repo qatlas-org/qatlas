@@ -4,7 +4,7 @@
 
 FROM maven:3.9-eclipse-temurin-21 AS build
 WORKDIR /workspace
-
+COPY .mvn .mvn
 # Copy just the poms first so Docker can cache the dependency download layer
 # separately from source changes (faster rebuilds).
 COPY pom.xml .
