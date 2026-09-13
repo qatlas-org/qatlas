@@ -4,7 +4,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.qatlas</groupId>
     <artifactId>qatlas-ui</artifactId>
-    <version>1.0.1-dashboard-SNAPSHOT</version>
+    <version>${revision}</version>
     <packaging>pom</packaging>
     <name>QAtlas React UI</name>
     <description>React frontend for Test Automation Reporting Tool</description>

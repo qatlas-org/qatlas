@@ -10,7 +10,7 @@
     </parent>
     <groupId>org.qatlas</groupId>
     <artifactId>qatlas-backend</artifactId>
-    <version>1.0.1-dashboard-SNAPSHOT</version><!--Please update "swagger.client.app.version" property also to the same as this-->
+    <version>${revision}</version>
     <name>QAtlas Backend</name>
     <description>REST API and reporting backend for QAtlas, an open-source test execution reporting tool</description>
 
@@ -30,7 +30,7 @@
         <mapstruct.version>1.6.3</mapstruct.version>
         <swagger.codegen.version>3.0.25</swagger.codegen.version>
         <commons.codec.version>1.17.1</commons.codec.version>
-        <swagger.client.app.version>1.0.1-dashboard-SNAPSHOT</swagger.client.app.version>
+        <swagger.client.app.version>1.0.2-dashboard-SNAPSHOT</swagger.client.app.version>
         <springdoc.openapi.version>3.1.0</springdoc.openapi.version>
         <mysql.connector.version>9.1.0</mysql.connector.version>
     </properties>

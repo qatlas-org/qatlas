@@ -5,7 +5,7 @@
     <artifactId>qatlas-client</artifactId>
     <packaging>jar</packaging>
     <name>qatlas-client</name>
-    <version>1.0.1-dashboard-SNAPSHOT</version>
+    <version>${revision}</version>
     <url>https://qatlas.org</url>
     <description>REST client library for the QAtlas test reporting API</description>
     <scm>
