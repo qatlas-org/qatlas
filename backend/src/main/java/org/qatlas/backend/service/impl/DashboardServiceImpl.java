@@ -332,6 +332,56 @@ public class DashboardServiceImpl implements DashboardService {
 
         /*
          * ---------------------------------------------------------
+         * Individual execution blocks for the interactive graph
+         * ---------------------------------------------------------
+         *
+         * These are intentionally lightweight: the frontend only needs
+         * the execution id/name/date/status to render a clickable block
+         * and navigate to /executions/{id}.
+         */
+        List<ProjectExecutionStatsVO.ExecutionBlock> executionBlocks =
+                new ArrayList<>();
+
+        List<Object[]> executionBlockRows =
+                testExecutionRepository.findProjectExecutionBlocks(
+                        applicationId,
+                        effectiveFrom,
+                        runningSince
+                );
+
+        for (Object[] row : executionBlockRows) {
+
+            ProjectExecutionStatsVO.ExecutionBlock block =
+                    new ProjectExecutionStatsVO.ExecutionBlock();
+
+            block.setExecutionId(
+                    ((Number) row[0]).longValue()
+            );
+
+            block.setExecutionName(
+                    row[1] != null
+                            ? row[1].toString()
+                            : "Execution " + block.getExecutionId()
+            );
+
+            block.setDate(
+                    toLocalDate(row[2]).toString()
+            );
+
+            block.setStatus(
+                    row[3] != null
+                            ? row[3].toString()
+                            : "PASSED"
+            );
+
+            executionBlocks.add(block);
+        }
+
+        stats.setExecutionBlocks(executionBlocks);
+
+
+        /*
+         * ---------------------------------------------------------
          * Pass-rate trend
          * ---------------------------------------------------------
          *

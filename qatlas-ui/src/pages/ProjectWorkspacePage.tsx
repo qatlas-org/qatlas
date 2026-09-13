@@ -1,12 +1,9 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import {
-  Bar,
-  BarChart,
   CartesianGrid,
   Line,
   LineChart,
-  Legend,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -144,17 +141,23 @@ export function ProjectWorkspacePage() {
       [projectExecutions]
   );
 
-  const barData = useMemo(
-      () =>
-          (projectStats?.dailyExecutions ?? []).map((day) => ({
-            date: day.date,
-            passed: day.passed,
-            failed: day.failed,
-            running: day.running,
-            total: day.passed + day.failed + day.running,
-          })),
-      [projectStats]
-  );
+  const executionBlocksByDate = useMemo(() => {
+    const grouped = new Map<
+        string,
+        NonNullable<typeof projectStats>['executionBlocks']
+    >();
+
+    for (const execution of projectStats?.executionBlocks ?? []) {
+      const executionsForDate = grouped.get(execution.date) ?? [];
+      executionsForDate.push(execution);
+      grouped.set(execution.date, executionsForDate);
+    }
+
+    return Array.from(grouped.entries()).map(([date, executions]) => ({
+      date,
+      executions,
+    }));
+  }, [projectStats]);
 
   const passRateTrend = projectStats?.passRateTrend ?? [];
 
@@ -304,12 +307,12 @@ export function ProjectWorkspacePage() {
       ]);
 
       const dailySheet = XLSX.utils.json_to_sheet(
-          barData.map((day) => ({
+          (projectStats?.dailyExecutions ?? []).map((day) => ({
             Date: day.date,
             Passed: day.passed,
             Failed: day.failed,
             Running: day.running,
-            Total: day.total,
+            Total: day.passed + day.failed + day.running,
           }))
       );
 
@@ -494,52 +497,82 @@ export function ProjectWorkspacePage() {
                   Executions per day
                 </p>
 
-                {barData.length === 0 ? (
+                {executionBlocksByDate.length === 0 ? (
                     <p className="py-16 text-center text-xs text-[var(--color-ink-muted)]">
                       No executions in this range
                     </p>
                 ) : (
-                    <ResponsiveContainer width="100%" height={180}>
-                      <BarChart data={barData}>
-                        <CartesianGrid
-                            strokeDasharray="3 3"
-                            stroke="#e2e8f0"
-                            vertical={false}
+                    <>
+                      <div className="overflow-x-auto pb-1">
+                        <div
+                            className="flex min-w-full items-end gap-3"
+                            style={{
+                              width: `max(100%, ${executionBlocksByDate.length * 48}px)`,
+                              minHeight: 164,
+                            }}
+                        >
+                          {executionBlocksByDate.map((day) => (
+                              <div
+                                  key={day.date}
+                                  className="flex min-w-[36px] flex-1 flex-col items-center"
+                              >
+                                <div className="flex h-[132px] w-full flex-col-reverse justify-start gap-[3px]">
+                                  {day.executions.map((execution) => {
+                                    const statusClass =
+                                        execution.status === 'PASSED'
+                                            ? 'bg-[var(--color-status-passed)]'
+                                            : execution.status === 'FAILED'
+                                                ? 'bg-[var(--color-status-failed)]'
+                                                : execution.status === 'RUNNING'
+                                                    ? 'bg-[var(--color-status-progress)]'
+                                                    : 'bg-amber-400';
+
+                                    return (
+                                        <button
+                                            key={execution.executionId}
+                                            type="button"
+                                            title={`${execution.executionName} · ${execution.status} · ${execution.date}`}
+                                            aria-label={`Open execution ${execution.executionId}: ${execution.executionName}`}
+                                            onClick={() =>
+                                                navigate(`/executions/${execution.executionId}`)
+                                            }
+                                            className={`h-[11px] w-full shrink-0 cursor-pointer rounded-[2px] transition-all hover:scale-x-105 hover:ring-2 hover:ring-slate-400 hover:ring-offset-1 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-1 ${statusClass}`}
+                                        />
+                                    );
+                                  })}
+                                </div>
+
+                                <span className="mt-2 whitespace-nowrap text-[9px] text-[var(--color-ink-muted)]">
+                                  {day.date.slice(5)}
+                                </span>
+                              </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="mt-3 flex flex-wrap items-center gap-4 text-[10px] text-[var(--color-ink-muted)]">
+                        <ExecutionBlockLegend
+                            className="bg-[var(--color-status-passed)]"
+                            label="Passed"
                         />
-                        <XAxis
-                            dataKey="date"
-                            tick={{ fontSize: 9 }}
-                            tickFormatter={(date) => date.slice(5)}
+                        <ExecutionBlockLegend
+                            className="bg-[var(--color-status-failed)]"
+                            label="Failed"
                         />
-                        <YAxis tick={{ fontSize: 10 }} allowDecimals={false} />
-                        <Tooltip />
-                        <Legend
-                            verticalAlign="bottom"
-                            align="left"
-                            iconType="circle"
-                            iconSize={7}
-                            wrapperStyle={{ fontSize: 10 }}
+                        <ExecutionBlockLegend
+                            className="bg-[var(--color-status-progress)]"
+                            label="Running"
                         />
-                        <Bar
-                            dataKey="passed"
-                            name="Passed"
-                            stackId="executions"
-                            fill="var(--color-status-passed)"
-                        />
-                        <Bar
-                            dataKey="failed"
-                            name="Failed"
-                            stackId="executions"
-                            fill="var(--color-status-failed)"
-                        />
-                        <Bar
-                            dataKey="running"
-                            name="Running"
-                            stackId="executions"
-                            fill="var(--color-status-progress)"
-                        />
-                      </BarChart>
-                    </ResponsiveContainer>
+                        {projectStats.executionBlocks.some(
+                            (execution) => execution.status === 'WARNING'
+                        ) && (
+                            <ExecutionBlockLegend
+                                className="bg-amber-400"
+                                label="Warning"
+                            />
+                        )}
+                      </div>
+                    </>
                 )}
               </Card>
 
@@ -633,6 +666,21 @@ export function ProjectWorkspacePage() {
           <ExecutionHistoryTable executions={projectExecutions} />
         </div>
       </div>
+  );
+}
+
+function ExecutionBlockLegend({
+                                className,
+                                label,
+                              }: {
+  className: string;
+  label: string;
+}) {
+  return (
+      <span className="inline-flex items-center gap-1.5">
+        <span className={`h-2 w-2 rounded-[2px] ${className}`} />
+        {label}
+      </span>
   );
 }
 

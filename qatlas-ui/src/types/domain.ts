@@ -82,6 +82,19 @@ export interface ProjectPassRateTrend {
   passRate: number | null;
 }
 
+export type ProjectExecutionBlockStatus =
+    | 'PASSED'
+    | 'FAILED'
+    | 'WARNING'
+    | 'RUNNING';
+
+export interface ProjectExecutionBlock {
+  executionId: number;
+  executionName: string;
+  date: string;
+  status: ProjectExecutionBlockStatus;
+}
+
 export interface ProjectExecutionStats {
   applicationId: number;
   applicationName: string;
@@ -97,6 +110,7 @@ export interface ProjectExecutionStats {
   inProgressExecutions: number;
 
   dailyExecutions: ProjectDailyExecutionTrend[];
+  executionBlocks: ProjectExecutionBlock[];
   passRateTrend: ProjectPassRateTrend[];
 }
 

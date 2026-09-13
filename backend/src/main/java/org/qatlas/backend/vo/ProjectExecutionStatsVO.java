@@ -28,6 +28,8 @@ public class ProjectExecutionStatsVO {
 
     private List<DailyExecutionTrend> dailyExecutions = new ArrayList<>();
 
+    private List<ExecutionBlock> executionBlocks = new ArrayList<>();
+
     private List<PassRateTrend> passRateTrend = new ArrayList<>();
 
 
@@ -95,6 +97,15 @@ public class ProjectExecutionStatsVO {
         this.dailyExecutions = dailyExecutions;
     }
 
+    public List<ExecutionBlock> getExecutionBlocks() {
+        return executionBlocks;
+    }
+
+    public void setExecutionBlocks(List<ExecutionBlock> executionBlocks) {
+        this.executionBlocks = executionBlocks;
+    }
+
+
     public List<PassRateTrend> getPassRateTrend() {
         return passRateTrend;
     }
@@ -145,6 +156,51 @@ public class ProjectExecutionStatsVO {
 
         public void setRunning(long running) {
             this.running = running;
+        }
+    }
+
+
+    public static class ExecutionBlock {
+
+        private Long executionId;
+
+        private String executionName;
+
+        private String date;
+
+        private String status;
+
+
+        public Long getExecutionId() {
+            return executionId;
+        }
+
+        public void setExecutionId(Long executionId) {
+            this.executionId = executionId;
+        }
+
+        public String getExecutionName() {
+            return executionName;
+        }
+
+        public void setExecutionName(String executionName) {
+            this.executionName = executionName;
+        }
+
+        public String getDate() {
+            return date;
+        }
+
+        public void setDate(String date) {
+            this.date = date;
+        }
+
+        public String getStatus() {
+            return status;
+        }
+
+        public void setStatus(String status) {
+            this.status = status;
         }
     }
 
