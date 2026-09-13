@@ -10,7 +10,10 @@ export interface DailyOutcomeBucket {
  * (chronological) of per-execution outcomes — powers the stacked "executions
  * per day" chart where each segment is one real execution. */
 export function bucketExecutionsByDay(executions: TestExecution[], range: DateRangeKey): DailyOutcomeBucket[] {
-  const start = rangeStartDate(range);
+  const start =
+      range === 'ALL'
+          ? new Date(0)
+          : rangeStartDate(range);
   const now = new Date();
   const sorted = executions
     .filter((e) => new Date(e.startTime) >= start)
@@ -40,7 +43,11 @@ export interface PassRatePoint {
 }
 
 export function computePassRateTrend(executions: TestExecution[], range: DateRangeKey): PassRatePoint[] {
-  const start = rangeStartDate(range);
+  const start =
+      range === 'ALL'
+          ? new Date(0)
+          : rangeStartDate(range);
+
   const now = new Date();
   const byDay = new Map<string, { passed: number; executed: number }>();
   for (const key of dayKeysBetween(start, now)) byDay.set(key, { passed: 0, executed: 0 });

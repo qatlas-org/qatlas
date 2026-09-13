@@ -1,22 +1,26 @@
-export type DateRangeKey = '30D' | '3M' | '6M' | '1Y';
+export type DateRangeKey = '30D' | '3M' | '6M' | '1Y' | 'ALL';
 
-const DAYS_BY_RANGE: Record<DateRangeKey, number> = {
+const DAYS_BY_RANGE: Record<Exclude<DateRangeKey, 'ALL'>, number> = {
   '30D': 30,
   '3M': 90,
   '6M': 180,
   '1Y': 365,
 };
 
-export const RANGE_OPTIONS: DateRangeKey[] = ['30D', '3M', '6M', '1Y'];
+export const RANGE_OPTIONS: DateRangeKey[] = ['30D', '3M', '6M', '1Y', 'ALL'];
 
 export const RANGE_LABELS: Record<DateRangeKey, string> = {
   '30D': 'last 30 days',
   '3M': 'last 3 months',
   '6M': 'last 6 months',
   '1Y': 'last 12 months',
+  'ALL': 'all time',
 };
 
-export function rangeStartDate(range: DateRangeKey, now: Date = new Date()): Date {
+export function rangeStartDate(
+    range: Exclude<DateRangeKey, 'ALL'>,
+    now: Date = new Date()
+    ): Date {
   const start = new Date(now);
   start.setDate(start.getDate() - DAYS_BY_RANGE[range]);
   start.setHours(0, 0, 0, 0);

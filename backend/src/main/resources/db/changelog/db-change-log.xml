@@ -244,4 +244,21 @@
 			<column name="IS_ARCHIVED" type="BOOLEAN" defaultValue="FALSE" />
 		</addColumn>
 	</changeSet>
+	<changeSet id="dashboard-execution-date-index" author="qatlas">
+		<preConditions onFail="MARK_RAN">
+			<not>
+				<indexExists
+						schemaName="reports_db"
+						tableName="test_execution"
+						indexName="IDX_TEST_EXECUTION_DASHBOARD"/>
+			</not>
+		</preConditions>
+		<createIndex
+				schemaName="reports_db"
+				tableName="test_execution"
+				indexName="IDX_TEST_EXECUTION_DASHBOARD">
+			<column name="IS_ARCHIVED"/>
+			<column name="START_TIME"/>
+		</createIndex>
+	</changeSet>
 </databaseChangeLog>

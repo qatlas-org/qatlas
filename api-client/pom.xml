@@ -5,7 +5,7 @@
     <artifactId>qatlas-client</artifactId>
     <packaging>jar</packaging>
     <name>qatlas-client</name>
-    <version>1.0.1</version>
+    <version>${revision}</version>
     <url>https://qatlas.org</url>
     <description>REST client library for the QAtlas test reporting API</description>
     <scm>
@@ -13,11 +13,21 @@
         <developerConnection>scm:git:ssh://github.com/qatlas-org/qatlas.git</developerConnection>
         <url>https://github.com/qatlas-org/qatlas/tree/main/api-client</url>
     </scm>
+
     <distributionManagement>
+
         <repository>
             <id>central</id>
+            <name>Central Portal</name>
             <url>https://central.sonatype.com/api/v1/publisher</url>
         </repository>
+
+        <snapshotRepository>
+            <id>central</id>
+            <name>Central Portal Snapshots</name>
+            <url>https://central.sonatype.com/repository/maven-snapshots/</url>
+        </snapshotRepository>
+
     </distributionManagement>
     <licenses>
         <license>
