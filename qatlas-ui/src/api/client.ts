@@ -2,6 +2,7 @@ import axios from 'axios';
 import type {
   Application,
   DashboardStats,
+  DashboardProjectSummary,
   Environment,
   ExecutionStatus,
   TestCase,
@@ -34,20 +35,20 @@ http.interceptors.request.use((config) => {
 // If the backend ever rejects the token (expired, revoked), drop it locally too
 // so the UI reflects "logged out" instead of silently retrying with a dead token.
 http.interceptors.response.use(
-  (res) => res,
-  (error) => {
-    if (error?.response?.status === 401) {
-      clearToken();
+    (res) => res,
+    (error) => {
+      if (error?.response?.status === 401) {
+        clearToken();
+      }
+      return Promise.reject(error);
     }
-    return Promise.reject(error);
-  }
 );
 
 export const api = {
 
   auth: {
     login: (username: string, password: string) =>
-      http.post<{ token: string; username: string }>('/auth/login', { username, password }).then((r) => r.data),
+        http.post<{ token: string; username: string }>('/auth/login', { username, password }).then((r) => r.data),
   },
 
   applications: {
@@ -65,35 +66,44 @@ export const api = {
               params: from ? { from } : undefined,
             })
             .then((r) => r.data),
+    projects: (from?: string, executor?: string) =>
+        http
+            .get<DashboardProjectSummary[]>('/dashboard/projects', {
+              params: {
+                ...(from ? { from } : {}),
+                ...(executor ? { executor } : {}),
+              },
+            })
+            .then((r) => r.data),
   },
   executions: {
     list: () => http.get<TestExecution[]>('/test-execution').then((r) => r.data),
     getById: (id: number) => http.get<TestExecution>(`/test-execution/${id}`).then((r) => r.data),
     suites: (executionId: number) =>
-      http.get<TestSuite[]>(`/test-execution/${executionId}/test-suites`).then((r) => r.data),
+        http.get<TestSuite[]>(`/test-execution/${executionId}/test-suites`).then((r) => r.data),
     // status filter mirrors classic UI: ?status=PASSED&status=FAILED...
     testCases: (executionId: number, statuses?: ExecutionStatus[]) =>
-      http
-        .get<TestCase[]>(`/test-execution/${executionId}/test-cases`, {
-          params: statuses?.length ? { status: statuses } : undefined,
-          paramsSerializer: { indexes: null },
-        })
-        .then((r) => r.data),
+        http
+            .get<TestCase[]>(`/test-execution/${executionId}/test-cases`, {
+              params: statuses?.length ? { status: statuses } : undefined,
+              paramsSerializer: { indexes: null },
+            })
+            .then((r) => r.data),
     // Requires admin auth (see AdminOnlyFilter on the backend). deleteAttachmentsOnly=true
     // removes just the screenshots; false fully archives (soft-deletes) the execution(s).
     archive: (executionIds: number[], deleteAttachmentsOnly: boolean) =>
-      http.put<void>(`/test-execution/archive/${deleteAttachmentsOnly}`, executionIds),
+        http.put<void>(`/test-execution/archive/${deleteAttachmentsOnly}`, executionIds),
   },
 
   suites: {
     getById: (id: number) => http.get<TestSuite>(`/test-suite/${id}`).then((r) => r.data),
     testCases: (suiteId: number) =>
-      http.get<TestCase[]>(`/test-suite/${suiteId}/test-cases`).then((r) => r.data),
+        http.get<TestCase[]>(`/test-suite/${suiteId}/test-cases`).then((r) => r.data),
   },
 
   testCases: {
     getById: (id: number) => http.get<TestCase>(`/test-case/${id}`).then((r) => r.data),
     testSteps: (testCaseId: number) =>
-      http.get<TestStep[]>(`/test-case/${testCaseId}/test-steps`).then((r) => r.data),
+        http.get<TestStep[]>(`/test-case/${testCaseId}/test-steps`).then((r) => r.data),
   },
 };

@@ -29,7 +29,47 @@ export const useDashboardStats = (range: DateRangeKey) =>
         },
         staleTime: REPORT_STALE_TIME,
     });
+export const useDashboardProjects = (
+    range: DateRangeKey,
+    executor: string
+) =>
+    useQuery({
+        queryKey: ['dashboard-projects', range, executor],
 
+        queryFn: () => {
+            const selectedExecutor =
+                executor === 'All'
+                    ? undefined
+                    : executor;
+
+            if (range === 'ALL') {
+                return api.dashboard.projects(
+                    undefined,
+                    selectedExecutor
+                );
+            }
+
+            const from = rangeStartDate(range);
+
+            const year = from.getFullYear();
+            const month = String(
+                from.getMonth() + 1
+            ).padStart(2, '0');
+
+            const day = String(
+                from.getDate()
+            ).padStart(2, '0');
+
+            return api.dashboard.projects(
+                `${year}-${month}-${day}T00:00:00`,
+                selectedExecutor
+            );
+        },
+
+        enabled: executor !== 'All',
+
+        staleTime: REPORT_STALE_TIME,
+    });
 export const useApplications = () =>
   useQuery({ queryKey: ['applications'], queryFn: api.applications.list, staleTime: REPORT_STALE_TIME });
 

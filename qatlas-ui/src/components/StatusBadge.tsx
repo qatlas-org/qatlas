@@ -6,6 +6,7 @@ const STYLES: Record<ExecutionStatus, { label: string; classes: string; Icon: ty
   FAILED: { label: 'Failed', classes: 'bg-red-50 text-red-700 border-red-200', Icon: XCircle },
   WARNING: { label: 'Warning', classes: 'bg-amber-50 text-amber-700 border-amber-200', Icon: AlertTriangle },
   PROGRESS: { label: 'In Progress', classes: 'bg-blue-50 text-blue-700 border-blue-200', Icon: Loader2 },
+  PLANNED: { label: 'Planned', classes: 'bg-slate-100 text-slate-500 border-slate-200', Icon: CircleSlash },
   SKIPPED: { label: 'Skipped', classes: 'bg-slate-100 text-slate-500 border-slate-200', Icon: CircleSlash },
 };
 

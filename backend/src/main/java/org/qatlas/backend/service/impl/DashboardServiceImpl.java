@@ -98,6 +98,35 @@ public class DashboardServiceImpl implements DashboardService {
         return stats;
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public List<DashboardStatsVO.ProjectSummary> getDashboardProjects(
+            LocalDateTime from,
+            String executor) {
+
+        LocalDateTime effectiveFrom = from;
+
+        if (effectiveFrom == null) {
+
+            effectiveFrom =
+                    testExecutionRepository.findDashboardEarliestExecutionTime();
+
+            if (effectiveFrom == null) {
+                effectiveFrom = LocalDate.now().atStartOfDay();
+            }
+        }
+
+        String effectiveExecutor =
+                executor != null && !executor.isBlank()
+                        ? executor
+                        : null;
+
+        return buildProjects(
+                effectiveFrom,
+                effectiveExecutor
+        );
+    }
+
 
     private void populateStatusTotals(
             DashboardStatsVO stats,
@@ -285,17 +314,44 @@ public class DashboardServiceImpl implements DashboardService {
             DashboardStatsVO stats,
             LocalDateTime from) {
 
+        stats.setProjects(
+                buildProjects(
+                        from,
+                        null
+                )
+        );
+    }
+
+
+    private List<DashboardStatsVO.ProjectSummary> buildProjects(
+            LocalDateTime from,
+            String executor) {
+
         LocalDateTime runningSince =
                 LocalDateTime.now().minusHours(24);
 
+
         /*
-         * Total executions per application in the selected range.
+         * Total executions per application.
+         *
+         * When executor is null we keep the current ALL behaviour.
+         * Otherwise the database only considers executions belonging
+         * to the selected executor.
          */
         Map<Long, Long> totalByApplication =
                 new HashMap<>();
 
-        for (Object[] row :
-                testExecutionRepository.countDashboardExecutionsByApplication(from)) {
+        List<Object[]> totalRows =
+                executor == null
+                        ? testExecutionRepository
+                        .countDashboardExecutionsByApplication(from)
+                        : testExecutionRepository
+                        .countDashboardExecutionsByApplicationAndExecutor(
+                                from,
+                                executor
+                        );
+
+        for (Object[] row : totalRows) {
 
             Long applicationId =
                     ((Number) row[0]).longValue();
@@ -311,49 +367,74 @@ public class DashboardServiceImpl implements DashboardService {
 
 
         /*
-         * Executors / machines used by each application
-         * in the selected dashboard range.
+         * Executors used by each project.
          *
-         * This is used by the "Executed by" filter.
+         * For the normal ALL dashboard we preserve the complete executor
+         * membership information.
+         *
+         * For an executor-filtered request there is no reason to run the
+         * application/machine grouping query again: every returned project
+         * belongs to the requested executor.
          */
         Map<Long, List<String>> executorsByApplication =
                 new HashMap<>();
 
-        for (Object[] row :
-                testExecutionRepository
-                        .countDashboardExecutionsByApplicationAndMachine(from)) {
+        if (executor == null) {
 
-            Long applicationId =
-                    ((Number) row[0]).longValue();
+            for (Object[] row :
+                    testExecutionRepository
+                            .countDashboardExecutionsByApplicationAndMachine(from)) {
 
-            String executor =
-                    row[1] != null
-                            ? row[1].toString()
-                            : "Unknown";
+                Long applicationId =
+                        ((Number) row[0]).longValue();
 
-            executorsByApplication
-                    .computeIfAbsent(
-                            applicationId,
-                            key -> new ArrayList<>()
-                    )
-                    .add(executor);
+                String projectExecutor =
+                        row[1] != null
+                                ? row[1].toString()
+                                : "Unknown";
+
+                executorsByApplication
+                        .computeIfAbsent(
+                                applicationId,
+                                key -> new ArrayList<>()
+                        )
+                        .add(projectExecutor);
+            }
+
+        } else {
+
+            for (Long applicationId :
+                    totalByApplication.keySet()) {
+
+                executorsByApplication.put(
+                        applicationId,
+                        List.of(executor)
+                );
+            }
         }
 
 
         /*
-         * Execution-status segment totals per application.
-         *
-         * The repository query classifies every execution once as
-         * RUNNING / FAILED / WARNING / PASSED.
+         * Execution-status totals per project.
          */
         Map<Long, Map<String, Long>> statusByApplication =
                 new HashMap<>();
 
-        for (Object[] row :
-                testCaseRepository
+        List<Object[]> statusRows =
+                executor == null
+                        ? testCaseRepository
                         .countDashboardExecutionsByApplicationAndStatus(
                                 from,
-                                runningSince)) {
+                                runningSince
+                        )
+                        : testCaseRepository
+                        .countDashboardExecutionsByApplicationAndStatusAndExecutor(
+                                from,
+                                runningSince,
+                                executor
+                        );
+
+        for (Object[] row : statusRows) {
 
             Long applicationId =
                     ((Number) row[0]).longValue();
@@ -377,17 +458,27 @@ public class DashboardServiceImpl implements DashboardService {
 
 
         /*
-         * Latest execution for each application,
-         * retrieved in one query.
+         * Latest execution per project.
+         *
+         * This is the important part of the executor filter:
+         * when an executor is selected, the latest execution is the latest
+         * execution by THAT executor rather than the latest execution overall.
          */
+        List<TestExecution> latestExecutions =
+                executor == null
+                        ? testExecutionRepository
+                        .findDashboardLatestExecutionsByApplication(from)
+                        : testExecutionRepository
+                        .findDashboardLatestExecutionsByApplicationAndExecutor(
+                                from,
+                                executor
+                        );
+
         Map<Long, TestExecution> latestByApplication =
                 new HashMap<>();
 
-        List<TestExecution> latestExecutions =
-                testExecutionRepository
-                        .findDashboardLatestExecutionsByApplication(from);
-
-        for (TestExecution execution : latestExecutions) {
+        for (TestExecution execution :
+                latestExecutions) {
 
             latestByApplication.put(
                     execution.getApplication().getId(),
@@ -397,8 +488,8 @@ public class DashboardServiceImpl implements DashboardService {
 
 
         /*
-         * Fetch testcase statuses for all latest executions in one query.
-         * This lets us derive the latest card status without N+1 queries.
+         * Fetch testcase statuses for the selected latest executions
+         * in one query to avoid N+1 database access.
          */
         Map<Long, Map<ExecutionStatus, Long>> latestExecutionStatuses =
                 new HashMap<>();
@@ -437,23 +528,30 @@ public class DashboardServiceImpl implements DashboardService {
         }
 
 
-        /*
-         * Build one project summary for every configured application.
-         *
-         * Applications with no executions in the selected range
-         * are still returned with zero totals and no latest execution.
-         */
         List<DashboardStatsVO.ProjectSummary> projects =
                 new ArrayList<>();
+
 
         for (Application application :
                 applicationRepository.findAll()) {
 
-            DashboardStatsVO.ProjectSummary project =
-                    new DashboardStatsVO.ProjectSummary();
-
             Long applicationId =
                     application.getId();
+
+
+            /*
+             * For a specific executor only return projects actually
+             * executed by that executor in the selected date range.
+             */
+            if (executor != null
+                    && !totalByApplication.containsKey(applicationId)) {
+
+                continue;
+            }
+
+
+            DashboardStatsVO.ProjectSummary project =
+                    new DashboardStatsVO.ProjectSummary();
 
             project.setApplicationId(
                     applicationId
@@ -474,11 +572,6 @@ public class DashboardServiceImpl implements DashboardService {
                     )
             );
 
-            /*
-             * Important:
-             * Keep every executor that ran this project
-             * during the selected dashboard range.
-             */
             project.setExecutors(
                     executorsByApplication.getOrDefault(
                             applicationId,
@@ -558,7 +651,8 @@ public class DashboardServiceImpl implements DashboardService {
             projects.add(project);
         }
 
-        stats.setProjects(projects);
+
+        return projects;
     }
 
 

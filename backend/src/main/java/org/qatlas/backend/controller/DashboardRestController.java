@@ -8,7 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
-
+import java.util.List;
 import java.time.LocalDateTime;
 
 import static org.qatlas.backend.Constants.SLASH;
@@ -37,5 +37,23 @@ public class DashboardRestController {
             final LocalDateTime from) {
 
         return dashboardService.getDashboardStats(from);
+    }@GetMapping("/projects")
+    @Operation(
+            summary = "Get dashboard project summaries for a selected executor",
+            operationId = "getDashboardProjects"
+    )
+    public List<DashboardStatsVO.ProjectSummary> getDashboardProjects(
+            @RequestParam(name = "from", required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+            final LocalDateTime from,
+
+            @RequestParam(name = "executor", required = false)
+            final String executor) {
+
+        return dashboardService.getDashboardProjects(
+                from,
+                executor
+        );
     }
+
 }

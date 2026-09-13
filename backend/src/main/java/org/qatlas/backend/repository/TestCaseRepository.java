@@ -126,5 +126,52 @@ public interface TestCaseRepository extends JpaRepository<TestCase, Long> {
             @Param("from") LocalDateTime from,
             @Param("runningSince") LocalDateTime runningSince
     );
+    /**
+     * Dashboard execution totals grouped by application and derived execution
+     * status for one selected executor.
+     *
+     * The executor rule is the same as the dashboard machine selector:
+     * prefer EXECUTED_BY, otherwise fall back to SYSTEM_NAME.
+     *
+     * Row shape: [applicationId, status, count]
+     */
+    @Query(value = """
+    SELECT x.application_id,
+           x.execution_status,
+           COUNT(*) AS execution_count
+    FROM (
+        SELECT te.ID,
+               te.APPLICATION_ID AS application_id,
+               CASE
+                   WHEN te.END_TIME IS NULL
+                        AND te.START_TIME >= :runningSince
+                       THEN 'RUNNING'
+                   WHEN SUM(CASE WHEN tc.EXECUTION_STATUS = 'FAILED' THEN 1 ELSE 0 END) > 0
+                       THEN 'FAILED'
+                   WHEN SUM(CASE WHEN tc.EXECUTION_STATUS = 'WARNING' THEN 1 ELSE 0 END) > 0
+                       THEN 'WARNING'
+                   ELSE 'PASSED'
+               END AS execution_status
+        FROM reports_db.test_execution te
+        LEFT JOIN reports_db.test_suite ts
+               ON ts.TEST_EXECUTION_ID = te.ID
+        LEFT JOIN reports_db.test_case tc
+               ON tc.TEST_SUITE_ID = ts.ID
+        WHERE te.IS_ARCHIVED = 0
+          AND te.START_TIME >= :from
+          AND COALESCE(te.EXECUTED_BY, te.SYSTEM_NAME) = :executor
+        GROUP BY te.ID,
+                 te.APPLICATION_ID,
+                 te.END_TIME,
+                 te.START_TIME
+    ) x
+    GROUP BY x.application_id,
+             x.execution_status
+    """, nativeQuery = true)
+    List<Object[]> countDashboardExecutionsByApplicationAndStatusAndExecutor(
+            @Param("from") LocalDateTime from,
+            @Param("runningSince") LocalDateTime runningSince,
+            @Param("executor") String executor
+    );
 
 }

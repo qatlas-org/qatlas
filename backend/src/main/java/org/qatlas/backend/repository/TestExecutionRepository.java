@@ -175,4 +175,60 @@ public interface TestExecutionRepository extends JpaRepository<TestExecution, Lo
     @Query("update TestExecution e set e.archived = true where e.id in (:testExecutionIds)")
     void archive(@Param("testExecutionIds") final List<Long> testExecutionIds);
 
+    /**
+     * Dashboard execution count grouped by application for one selected executor.
+     *
+     * The executor rule is identical to the dashboard machine selector:
+     * prefer executedBy, otherwise fall back to systemName.
+     *
+     * Row shape: [applicationId, count]
+     */
+    @Query("""
+    SELECT e.application.id,
+           COUNT(e)
+    FROM TestExecution e
+    WHERE e.archived = false
+      AND e.startTime >= :from
+      AND COALESCE(e.executedBy, e.systemName) = :executor
+    GROUP BY e.application.id
+    """)
+    List<Object[]> countDashboardExecutionsByApplicationAndExecutor(
+            @Param("from") LocalDateTime from,
+            @Param("executor") String executor
+    );
+
+    /**
+     * Latest execution for each application for one selected executor
+     * within the selected dashboard range.
+     *
+     * ID is used as the deterministic tie-breaker when two executions
+     * have the same start time.
+     */
+    @Query("""
+    SELECT e
+    FROM TestExecution e
+    WHERE e.archived = false
+      AND e.startTime >= :from
+      AND COALESCE(e.executedBy, e.systemName) = :executor
+      AND NOT EXISTS (
+          SELECT newer.id
+          FROM TestExecution newer
+          WHERE newer.archived = false
+            AND newer.application.id = e.application.id
+            AND newer.startTime >= :from
+            AND COALESCE(newer.executedBy, newer.systemName) = :executor
+            AND (
+                newer.startTime > e.startTime
+                OR (
+                    newer.startTime = e.startTime
+                    AND newer.id > e.id
+                )
+            )
+      )
+    """)
+    List<TestExecution> findDashboardLatestExecutionsByApplicationAndExecutor(
+            @Param("from") LocalDateTime from,
+            @Param("executor") String executor
+    );
+
 }

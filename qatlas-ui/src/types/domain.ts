@@ -6,8 +6,8 @@ export type ExecutionStatus =
     | 'PROGRESS'
     | 'PASSED'
     | 'FAILED'
-    | 'WARNING';
-
+    | 'WARNING'
+    | 'SKIPPED';
 export type AttachmentType = 'SNAPSHOT' | 'OTHER';
 
 
