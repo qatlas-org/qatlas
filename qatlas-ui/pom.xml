@@ -61,6 +61,15 @@
                         </goals>
                         <configuration>
                             <arguments>run build</arguments>
+                            <environmentVariables>
+                                <VITE_QATLAS_UI_VERSION>
+                                    ${project.version}
+                                </VITE_QATLAS_UI_VERSION>
+
+                                <VITE_QATLAS_API_CLIENT_VERSION>
+                                    ${project.version}
+                                </VITE_QATLAS_API_CLIENT_VERSION>
+                            </environmentVariables>
                         </configuration>
                     </execution>
                 </executions>
