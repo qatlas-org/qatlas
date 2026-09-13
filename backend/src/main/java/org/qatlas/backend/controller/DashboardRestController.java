@@ -12,7 +12,7 @@ import java.util.List;
 import java.time.LocalDateTime;
 
 import static org.qatlas.backend.Constants.SLASH;
-
+import org.qatlas.backend.vo.ProjectExecutionStatsVO;
 @RestController
 @RequestMapping(SLASH + "dashboard")
 @ResponseStatus(HttpStatus.OK)
@@ -42,6 +42,7 @@ public class DashboardRestController {
             summary = "Get dashboard project summaries for a selected executor",
             operationId = "getDashboardProjects"
     )
+
     public List<DashboardStatsVO.ProjectSummary> getDashboardProjects(
             @RequestParam(name = "from", required = false)
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
@@ -53,6 +54,24 @@ public class DashboardRestController {
         return dashboardService.getDashboardProjects(
                 from,
                 executor
+        );
+    }
+    @GetMapping("/projects/{applicationId}")
+    @Operation(
+            summary = "Get project execution statistics from the selected date, or lifetime when omitted",
+            operationId = "getProjectExecutionStats"
+    )
+    public ProjectExecutionStatsVO getProjectExecutionStats(
+            @PathVariable("applicationId")
+            final Long applicationId,
+
+            @RequestParam(name = "from", required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+            final LocalDateTime from) {
+
+        return dashboardService.getProjectExecutionStats(
+                applicationId,
+                from
         );
     }
 

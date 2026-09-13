@@ -1,313 +1,658 @@
-import { useEffect, useMemo, useState } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useEffect, useMemo, useRef } from 'react';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import {
-  PieChart, Pie, Cell, BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Line,
+  LineChart,
+  Legend,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
 } from 'recharts';
-import { useApplications, useExecutions, useExecutionTestCases } from '../hooks/useQueries';
+import { toBlob, toJpeg, toPng } from 'html-to-image';
+import jsPDF from 'jspdf';
+import * as XLSX from 'xlsx';
+import {
+  useApplications,
+  useExecutions,
+  useProjectExecutionStats,
+} from '../hooks/useQueries';
 import { useAuth } from '../hooks/useAuth';
-import { LoadingState, ErrorState, Card } from '../components/Primitives';
-import { InfoPanel } from '../components/InfoPanel';
-import { StatCardButton, SectionHeader } from '../components/StatCardButton';
+import { Card, ErrorState, LoadingState } from '../components/Primitives';
+import { SectionHeader } from '../components/StatCardButton';
 import { KebabMenu, ExportScope } from '../components/KebabMenu';
 import { ExecutionHistoryTable } from '../components/ExecutionHistoryTable';
-import { formatDateTime, formatDuration } from '../lib/format';
-import { bucketExecutionsByDay, computePassRateTrend, currentlyRunning } from '../lib/projectStats';
-import type { DateRangeKey } from '../lib/dateRange';
-import type { TestExecution } from '../types/domain';
+import { formatDateTime } from '../lib/format';
+import {
+  RANGE_OPTIONS,
+  rangeStartDate,
+  type DateRangeKey,
+} from '../lib/dateRange';
+import { currentlyRunning } from '../lib/projectStats';
 import { setCurrentProjectId } from '../lib/currentProject';
 import { QuickNav } from '../components/QuickNav';
 
-type Variant = 'A' | 'B';
-const VARIANT_KEY = 'qatlas_workspace_variant';
+const DEFAULT_RANGE: DateRangeKey = '30D';
 
-function getStoredVariant(): Variant {
-  return (localStorage.getItem(VARIANT_KEY) as Variant) ?? 'A';
+const EXPORT_IMAGE_OPTIONS = {
+  cacheBust: true,
+  pixelRatio: 2,
+  backgroundColor: '#ffffff',
+};
+
+function safeFileName(value: string): string {
+  return value
+      .trim()
+      .replace(/[^a-zA-Z0-9-_]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .toLowerCase();
+}
+
+function downloadDataUrl(dataUrl: string, fileName: string) {
+  const link = document.createElement('a');
+  link.href = dataUrl;
+  link.download = fileName;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+}
+
+
+function isValidRange(value: string | null): value is DateRangeKey {
+  return value !== null && RANGE_OPTIONS.includes(value as DateRangeKey);
+}
+
+function rangeLabel(range: DateRangeKey): string {
+  switch (range) {
+    case '30D':
+      return 'Last 30 days';
+    case '3M':
+      return 'Last 3 months';
+    case '6M':
+      return 'Last 6 months';
+    case '1Y':
+      return 'Last year';
+    case 'ALL':
+      return 'Lifetime';
+  }
 }
 
 export function ProjectWorkspacePage() {
   const { applicationId } = useParams();
   const appId = Number(applicationId);
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { isAdmin, username, logout } = useAuth();
+  const exportScopeRef = useRef<HTMLDivElement>(null);
 
-  const [variant, setVariant] = useState<Variant>(getStoredVariant);
-  function changeVariant(v: Variant) {
-    setVariant(v);
-    localStorage.setItem(VARIANT_KEY, v);
-  }
-
-  const { data: applications, isLoading: loadingApps } = useApplications();
-  const { data: allExecutions, isLoading: loadingExecs, isError } = useExecutions();
+  const requestedRange = searchParams.get('range');
+  const range: DateRangeKey = isValidRange(requestedRange)
+      ? requestedRange
+      : DEFAULT_RANGE;
 
   useEffect(() => {
-    if (appId) setCurrentProjectId(appId);
+    if (!isValidRange(requestedRange)) {
+      setSearchParams({ range: DEFAULT_RANGE }, { replace: true });
+    }
+  }, [requestedRange, setSearchParams]);
+
+  const { data: applications, isLoading: loadingApps } = useApplications();
+  const {
+    data: allExecutions,
+    isLoading: loadingExecs,
+    isError: executionsError,
+  } = useExecutions();
+
+  const {
+    data: projectStats,
+    isLoading: loadingStats,
+    isError: statsError,
+  } = useProjectExecutionStats(
+      Number.isFinite(appId) && appId > 0 ? appId : undefined,
+      range
+  );
+
+  useEffect(() => {
+    if (appId) {
+      setCurrentProjectId(appId);
+    }
   }, [appId]);
 
   const application = applications?.find((a) => a.id === appId);
-  const projectExecutions = useMemo(
-    () => (allExecutions ?? []).filter((e) => e.applicationId === appId),
-    [allExecutions, appId]
-  );
-  const latest = projectExecutions.slice().sort(
-    (a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime()
-  )[0];
 
-  if (loadingApps || loadingExecs) return <LoadingState label="Loading project…" />;
-  if (isError || !application) return <ErrorState message="Could not load this project." />;
+  const projectExecutions = useMemo(() => {
+    const executions = (allExecutions ?? []).filter(
+        (execution) => execution.applicationId === appId
+    );
+
+    if (range === 'ALL') {
+      return executions;
+    }
+
+    const from = rangeStartDate(range).getTime();
+
+    return executions.filter(
+        (execution) => new Date(execution.startTime).getTime() >= from
+    );
+  }, [allExecutions, appId, range]);
+
+  const running = useMemo(
+      () => currentlyRunning(projectExecutions),
+      [projectExecutions]
+  );
+
+  const barData = useMemo(
+      () =>
+          (projectStats?.dailyExecutions ?? []).map((day) => ({
+            date: day.date,
+            passed: day.passed,
+            failed: day.failed,
+            running: day.running,
+            total: day.passed + day.failed + day.running,
+          })),
+      [projectStats]
+  );
+
+  const passRateTrend = projectStats?.passRateTrend ?? [];
+
+  const averagePassRate = useMemo(() => {
+    const values = passRateTrend
+        .map((point) => point.passRate)
+        .filter((value): value is number => value != null);
+
+    if (values.length === 0) {
+      return null;
+    }
+
+    const average =
+        values.reduce((sum, value) => sum + value, 0) / values.length;
+
+    return Math.round(average * 10) / 10;
+  }, [passRateTrend]);
+
+
+  function getExportNode(): HTMLDivElement {
+    if (!exportScopeRef.current) {
+      throw new Error('Export scope is not available.');
+    }
+
+    return exportScopeRef.current;
+  }
+
+  async function handleCopyToClipboard() {
+    try {
+      const blob = await toBlob(getExportNode(), EXPORT_IMAGE_OPTIONS);
+
+      if (!blob) {
+        throw new Error('Could not create export image.');
+      }
+
+      if (!navigator.clipboard?.write || typeof ClipboardItem === 'undefined') {
+        throw new Error('Image clipboard is not supported by this browser.');
+      }
+
+      await navigator.clipboard.write([
+        new ClipboardItem({
+          'image/png': blob,
+        }),
+      ]);
+
+      alert('Project execution overview copied to clipboard.');
+    } catch (error) {
+      console.error(error);
+      alert(
+          error instanceof Error
+              ? error.message
+              : 'Could not copy the project execution overview.'
+      );
+    }
+  }
+
+  async function handleExportJpeg() {
+    try {
+      const dataUrl = await toJpeg(getExportNode(), {
+        ...EXPORT_IMAGE_OPTIONS,
+        quality: 0.95,
+      });
+
+      downloadDataUrl(
+          dataUrl,
+          `${safeFileName(application?.name ?? 'project')}-${range.toLowerCase()}-overview.jpg`
+      );
+    } catch (error) {
+      console.error(error);
+      alert('Could not export the project execution overview as JPEG.');
+    }
+  }
+
+  async function handleExportPdf() {
+    try {
+      const dataUrl = await toPng(getExportNode(), EXPORT_IMAGE_OPTIONS);
+      const pdf = new jsPDF({
+        orientation: 'landscape',
+        unit: 'mm',
+        format: 'a4',
+      });
+
+      const margin = 8;
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const contentWidth = pageWidth - margin * 2;
+      const contentHeight = pageHeight - margin * 2;
+
+      const image = pdf.getImageProperties(dataUrl);
+      const renderedHeight =
+          (image.height * contentWidth) / image.width;
+
+      let remainingHeight = renderedHeight;
+      let positionY = margin;
+
+      pdf.addImage(
+          dataUrl,
+          'PNG',
+          margin,
+          positionY,
+          contentWidth,
+          renderedHeight
+      );
+
+      remainingHeight -= contentHeight;
+
+      while (remainingHeight > 0) {
+        pdf.addPage();
+
+        positionY =
+            margin - (renderedHeight - remainingHeight);
+
+        pdf.addImage(
+            dataUrl,
+            'PNG',
+            margin,
+            positionY,
+            contentWidth,
+            renderedHeight
+        );
+
+        remainingHeight -= contentHeight;
+      }
+
+      pdf.save(
+          `${safeFileName(application?.name ?? 'project')}-${range.toLowerCase()}-overview.pdf`
+      );
+    } catch (error) {
+      console.error(error);
+      alert('Could not export the project execution overview as PDF.');
+    }
+  }
+
+  function handleExportExcel() {
+    try {
+      const workbook = XLSX.utils.book_new();
+
+      const summarySheet = XLSX.utils.aoa_to_sheet([
+        ['Project', application?.name ?? 'Project'],
+        ['Range', rangeLabel(range)],
+        [],
+        ['Metric', 'Value'],
+        ['Total executions', projectStats?.totalExecutions ?? 0],
+        ['Passed executions', projectStats?.passedExecutions ?? 0],
+        ['Failed executions', projectStats?.failedExecutions ?? 0],
+        ['In progress', projectStats?.inProgressExecutions ?? 0],
+      ]);
+
+      const dailySheet = XLSX.utils.json_to_sheet(
+          barData.map((day) => ({
+            Date: day.date,
+            Passed: day.passed,
+            Failed: day.failed,
+            Running: day.running,
+            Total: day.total,
+          }))
+      );
+
+      const passRateSheet = XLSX.utils.json_to_sheet(
+          passRateTrend.map((point) => ({
+            Date: point.date,
+            'Pass rate (%)': point.passRate,
+          }))
+      );
+
+      XLSX.utils.book_append_sheet(workbook, summarySheet, 'Summary');
+      XLSX.utils.book_append_sheet(
+          workbook,
+          dailySheet,
+          'Executions per day'
+      );
+      XLSX.utils.book_append_sheet(
+          workbook,
+          passRateSheet,
+          'Pass rate trend'
+      );
+
+      XLSX.writeFile(
+          workbook,
+          `${safeFileName(application?.name ?? 'project')}-${range.toLowerCase()}-overview.xlsx`
+      );
+    } catch (error) {
+      console.error(error);
+      alert('Could not export the project execution overview as Excel.');
+    }
+  }
+
+  function changeRange(nextRange: DateRangeKey) {
+    setSearchParams({ range: nextRange });
+  }
+
+  function changeProject(nextProjectId: string) {
+    navigate(`/projects/${nextProjectId}?range=${range}`);
+  }
+
+  if (loadingApps || loadingExecs || loadingStats) {
+    return <LoadingState label="Loading project…" />;
+  }
+
+  if (
+      executionsError ||
+      statsError ||
+      !application ||
+      !projectStats
+  ) {
+    return <ErrorState message="Could not load this project." />;
+  }
 
   return (
-    <div className="mx-auto max-w-[1280px] px-8 py-6">
-      {/* Header */}
-      <div className="mb-1 flex items-center justify-between text-xs text-[var(--color-ink-muted)]">
-        <div>
-          <Link to="/" className="hover:underline">Projects</Link> / {application.name}
+      <div className="mx-auto max-w-[1280px] px-8 py-6">
+        <div className="mb-1 flex items-center justify-between text-xs text-[var(--color-ink-muted)]">
+          <div>
+            <Link to="/" className="hover:underline">
+              Projects
+            </Link>{' '}
+            / {application.name}
+          </div>
+          <QuickNav />
         </div>
-        <QuickNav />
-      </div>
-      <div className="mb-4 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <h1 className="text-xl font-semibold tracking-tight text-slate-900">{application.name}</h1>
-          <select
-            value={appId}
-            onChange={(e) => navigate(`/projects/${e.target.value}`)}
-            className="rounded-lg border border-[var(--color-border)] bg-white px-2.5 py-1 text-xs font-medium text-slate-700"
-          >
-            {applications?.map((a) => (
-              <option key={a.id} value={a.id}>{a.name}</option>
-            ))}
-          </select>
-          <div className="flex rounded-lg border border-[var(--color-border)] bg-white p-0.5 text-xs">
-            {(['A', 'B'] as Variant[]).map((v) => (
-              <button
-                key={v}
-                onClick={() => changeVariant(v)}
-                className={`rounded-md px-2.5 py-1 font-medium ${
-                  variant === v ? 'bg-slate-900 text-white' : 'text-[var(--color-ink-muted)]'
-                }`}
-              >
-                {v}
-              </button>
-            ))}
+
+        <div className="mb-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <h1 className="text-xl font-semibold tracking-tight text-slate-900">
+              {application.name}
+            </h1>
+
+            <select
+                value={appId}
+                onChange={(e) => changeProject(e.target.value)}
+                className="rounded-lg border border-[var(--color-border)] bg-white px-2.5 py-1 text-xs font-medium text-slate-700"
+            >
+              {applications?.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.name}
+                  </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <KebabMenu
+                items={[
+                  {
+                    label: 'Copy to clipboard',
+                    onClick: handleCopyToClipboard,
+                  },
+                  {
+                    label: 'Export as JPEG',
+                    onClick: handleExportJpeg,
+                  },
+                  {
+                    label: 'Export as PDF',
+                    onClick: handleExportPdf,
+                  },
+                  {
+                    label: 'Export as Excel',
+                    onClick: handleExportExcel,
+                  },
+                ]}
+            />
+
+            {isAdmin ? (
+                <div className="flex items-center gap-2">
+              <span className="text-xs text-[var(--color-ink-muted)]">
+                Signed in as {username}
+              </span>
+                  <button
+                      onClick={logout}
+                      className="rounded-lg border border-[var(--color-border)] bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
+                  >
+                    Sign out
+                  </button>
+                </div>
+            ) : (
+                <Link
+                    to="/login"
+                    className="rounded-lg border border-[var(--color-border)] bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
+                >
+                  Sign in
+                </Link>
+            )}
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <KebabMenu
-            items={[
-              { label: 'Copy to clipboard', onClick: () => alert('Implement with Clipboard API + html-to-image') },
-              { label: 'Export as JPEG', onClick: () => alert('Implement with html-to-image') },
-              { label: 'Export as PDF', onClick: () => alert('Implement with a PDF export lib') },
-              { label: 'Export as Excel', onClick: () => alert('Implement with a spreadsheet export lib') },
-            ]}
-          />
-          {isAdmin ? (
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-[var(--color-ink-muted)]">Signed in as {username}</span>
-              <button onClick={logout} className="rounded-lg border border-[var(--color-border)] bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50">
-                Sign out
-              </button>
+
+        <ExportScope>
+          <div ref={exportScopeRef} className="bg-white">
+            <div className="mb-4 flex items-center justify-between">
+              <SectionHeader title="Executions overview" />
+
+              <div className="flex rounded-lg border border-[var(--color-border)] bg-white p-0.5 text-xs">
+                {RANGE_OPTIONS.map((option) => (
+                    <button
+                        key={option}
+                        type="button"
+                        onClick={() => changeRange(option)}
+                        className={`rounded-md px-2.5 py-1 font-medium ${
+                            range === option
+                                ? 'bg-slate-900 text-white'
+                                : 'text-[var(--color-ink-muted)] hover:bg-slate-50'
+                        }`}
+                    >
+                      {option}
+                    </button>
+                ))}
+              </div>
             </div>
+
+            <p className="-mt-2 mb-4 text-xs text-[var(--color-ink-muted)]">
+              {rangeLabel(range)}
+            </p>
+
+            <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
+              <ProjectKpiCard
+                  label="Total executions"
+                  value={projectStats.totalExecutions}
+              />
+              <ProjectKpiCard
+                  label="Passed executions"
+                  value={projectStats.passedExecutions}
+                  tone="text-[var(--color-status-passed)]"
+              />
+              <ProjectKpiCard
+                  label="Failed executions"
+                  value={projectStats.failedExecutions}
+                  tone="text-[var(--color-status-failed)]"
+              />
+              <ProjectKpiCard
+                  label="In progress"
+                  value={projectStats.inProgressExecutions}
+                  tone="text-[var(--color-status-progress)]"
+              />
+            </div>
+
+            <div className="mb-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
+              <Card className="bg-slate-50 p-4">
+                <p className="mb-2 text-xs font-medium text-[var(--color-ink-muted)]">
+                  Executions per day
+                </p>
+
+                {barData.length === 0 ? (
+                    <p className="py-16 text-center text-xs text-[var(--color-ink-muted)]">
+                      No executions in this range
+                    </p>
+                ) : (
+                    <ResponsiveContainer width="100%" height={180}>
+                      <BarChart data={barData}>
+                        <CartesianGrid
+                            strokeDasharray="3 3"
+                            stroke="#e2e8f0"
+                            vertical={false}
+                        />
+                        <XAxis
+                            dataKey="date"
+                            tick={{ fontSize: 9 }}
+                            tickFormatter={(date) => date.slice(5)}
+                        />
+                        <YAxis tick={{ fontSize: 10 }} allowDecimals={false} />
+                        <Tooltip />
+                        <Legend
+                            verticalAlign="bottom"
+                            align="left"
+                            iconType="circle"
+                            iconSize={7}
+                            wrapperStyle={{ fontSize: 10 }}
+                        />
+                        <Bar
+                            dataKey="passed"
+                            name="Passed"
+                            stackId="executions"
+                            fill="var(--color-status-passed)"
+                        />
+                        <Bar
+                            dataKey="failed"
+                            name="Failed"
+                            stackId="executions"
+                            fill="var(--color-status-failed)"
+                        />
+                        <Bar
+                            dataKey="running"
+                            name="Running"
+                            stackId="executions"
+                            fill="var(--color-status-progress)"
+                        />
+                      </BarChart>
+                    </ResponsiveContainer>
+                )}
+              </Card>
+
+              <Card className="bg-slate-50 p-4">
+                <p className="mb-2 text-xs font-medium text-[var(--color-ink-muted)]">
+                  Pass rate trend
+                </p>
+
+                {passRateTrend.length === 0 ? (
+                    <p className="py-16 text-center text-xs text-[var(--color-ink-muted)]">
+                      No executions in this range
+                    </p>
+                ) : (
+                    <ResponsiveContainer width="100%" height={180}>
+                      <LineChart data={passRateTrend}>
+                        <CartesianGrid
+                            strokeDasharray="3 3"
+                            stroke="#e2e8f0"
+                            vertical={false}
+                        />
+                        <XAxis
+                            dataKey="date"
+                            tick={{ fontSize: 9 }}
+                            tickFormatter={(date) => date.slice(5)}
+                        />
+                        <YAxis
+                            tick={{ fontSize: 10 }}
+                            domain={[0, 100]}
+                        />
+                        <Tooltip />
+                        <Line
+                            type="monotone"
+                            dataKey="passRate"
+                            stroke="var(--color-status-passed)"
+                            strokeWidth={2}
+                            dot={false}
+                            connectNulls
+                        />
+                      </LineChart>
+                    </ResponsiveContainer>
+                )}
+
+                {averagePassRate != null && (
+                    <p className="mt-1 text-[10px] font-medium text-[var(--color-status-passed)]">
+                      {averagePassRate}% average
+                    </p>
+                )}
+              </Card>
+            </div>
+          </div>
+        </ExportScope>
+
+        <div className="mt-6">
+          <SectionHeader title="Currently running" />
+
+          {running.length === 0 ? (
+              <Card className="py-8 text-center text-sm text-[var(--color-ink-muted)]">
+                No executions currently running for {application.name}.
+              </Card>
           ) : (
-            <Link to="/login" className="rounded-lg border border-[var(--color-border)] bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50">
-              Sign in
-            </Link>
+              <div className="mb-2 space-y-2">
+                {running.map((execution) => (
+                    <Link
+                        key={execution.id}
+                        to={`/executions/${execution.id}`}
+                        className="flex items-center justify-between rounded-xl border border-blue-300 bg-white px-4 py-3 hover:bg-slate-50"
+                    >
+                      <div>
+                        <p className="text-sm font-medium text-blue-700">
+                          {execution.name}
+                        </p>
+                        <p className="mt-0.5 text-xs text-[var(--color-ink-muted)]">
+                          {execution.environmentName ?? '—'} · started{' '}
+                          {formatDateTime(execution.startTime)} ·{' '}
+                          {execution.executedTestCaseCount ?? 0} of{' '}
+                          {execution.targetedTestCaseCount ?? 0} executed
+                        </p>
+                      </div>
+
+                      <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700">
+                  In Progress
+                </span>
+                    </Link>
+                ))}
+              </div>
           )}
         </div>
-      </div>
 
-      {variant === 'A' ? (
-        <VariantA latest={latest} projectExecutions={projectExecutions} />
-      ) : (
-        <VariantB application={application} projectExecutions={projectExecutions} />
-      )}
-    </div>
+        <div className="mt-6">
+          <SectionHeader title="All executions" />
+          <ExecutionHistoryTable executions={projectExecutions} />
+        </div>
+      </div>
   );
 }
 
-const CHART_COLORS = {
-  PASSED: 'var(--color-status-passed)',
-  FAILED: 'var(--color-status-failed)',
-  WARNING: 'var(--color-status-warning)',
-  PROGRESS: 'var(--color-status-progress)',
-};
-
-function VariantA({ latest, projectExecutions }: { latest?: TestExecution; projectExecutions: TestExecution[] }) {
-  const navigate = useNavigate();
-  const { data: testCases } = useExecutionTestCases(latest?.id ?? 0);
-
-  if (!latest) {
-    return <Card className="py-16 text-center text-sm text-[var(--color-ink-muted)]">No executions recorded for this project yet.</Card>;
-  }
-
-  const donutData = [
-    { name: 'Passed', value: latest.passedTestCaseCount ?? 0, key: 'PASSED' as const },
-    { name: 'Failed', value: latest.failedTestCaseCount ?? 0, key: 'FAILED' as const },
-    { name: 'Skipped', value: latest.skippedTestCaseCount ?? 0, key: 'WARNING' as const },
-    { name: 'In Progress', value: latest.inProgressTestCaseCount ?? 0, key: 'PROGRESS' as const },
-  ].filter((d) => d.value > 0);
-
-  const slowest = (testCases ?? [])
-    .filter((tc) => tc.executionTime != null)
-    .sort((a, b) => (b.executionTime ?? 0) - (a.executionTime ?? 0))
-    .slice(0, 15)
-    .map((tc) => ({ name: tc.name, seconds: (tc.executionTime ?? 0) / 1000, passed: tc.executionStatus === 'PASSED' }));
-
-  const executionId = latest.id;
-  function goToExecution() {
-    navigate(`/executions/${executionId}`);
-  }
-
+function ProjectKpiCard({
+                          label,
+                          value,
+                          tone = 'text-slate-900',
+                        }: {
+  label: string;
+  value: number;
+  tone?: string;
+}) {
   return (
-    <div>
-      <ExportScope>
-        <div className="grid grid-cols-2 gap-4">
-          <InfoPanel
-            title="System details"
-            rows={[
-              { label: 'Executed by', value: latest.executedBy ?? latest.systemName ?? '—' },
-              { label: 'Project Name', value: latest.applicationName ?? '—' },
-              { label: 'Environment', value: latest.environmentName ?? '—' },
-              { label: 'Browser', value: latest.browser },
-            ]}
-          />
-          <InfoPanel
-            title="Execution details"
-            rows={[
-              { label: 'Run', value: latest.name },
-              { label: 'Execution Started', value: formatDateTime(latest.startTime) },
-              { label: 'Execution Ended', value: latest.endTime ? formatDateTime(latest.endTime) : '—' },
-              {
-                label: 'Execution Time',
-                value: latest.endTime
-                  ? formatDuration(new Date(latest.endTime).getTime() - new Date(latest.startTime).getTime())
-                  : '—',
-              },
-            ]}
-          />
-        </div>
-
-        <div className="my-4 grid grid-cols-6 gap-3">
-          <StatCardButton label="Targeted" value={latest.targetedTestCaseCount ?? 0} onClick={goToExecution} />
-          <StatCardButton label="Executed" value={latest.executedTestCaseCount ?? 0} onClick={goToExecution} />
-          <StatCardButton label="Passed" value={latest.passedTestCaseCount ?? 0} tone="text-[var(--color-status-passed)]" onClick={goToExecution} />
-          <StatCardButton label="Failed" value={latest.failedTestCaseCount ?? 0} tone="text-[var(--color-status-failed)]" onClick={goToExecution} />
-          <StatCardButton label="Skipped" value={latest.skippedTestCaseCount ?? 0} tone="text-[var(--color-status-warning)]" onClick={goToExecution} />
-          <StatCardButton label="In Progress" value={latest.inProgressTestCaseCount ?? 0} tone="text-[var(--color-status-progress)]" onClick={goToExecution} />
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <Card className="p-4">
-            <p className="mb-2 text-xs font-medium text-[var(--color-ink-muted)]">Test Scenarios Results</p>
-            {donutData.length === 0 ? (
-              <p className="py-16 text-center text-xs text-[var(--color-ink-muted)]">No data yet</p>
-            ) : (
-              <ResponsiveContainer width="100%" height={200}>
-                <PieChart>
-                  <Pie data={donutData} dataKey="value" nameKey="name" innerRadius={50} outerRadius={80}>
-                    {donutData.map((d) => <Cell key={d.key} fill={CHART_COLORS[d.key]} />)}
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
-            )}
-          </Card>
-          <Card className="p-4">
-            <p className="mb-2 text-xs font-medium text-[var(--color-ink-muted)]">Slowest Test Scenarios (seconds)</p>
-            {slowest.length === 0 ? (
-              <p className="py-16 text-center text-xs text-[var(--color-ink-muted)]">No data yet</p>
-            ) : (
-              <ResponsiveContainer width="100%" height={200}>
-                <BarChart data={slowest}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
-                  <XAxis dataKey="name" tick={false} />
-                  <YAxis tick={{ fontSize: 10 }} />
-                  <Tooltip />
-                  <Bar dataKey="seconds" radius={[3, 3, 0, 0]}>
-                    {slowest.map((d, i) => (
-                      <Cell key={i} fill={d.passed ? 'var(--color-status-passed)' : 'var(--color-status-failed)'} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            )}
-          </Card>
-        </div>
-      </ExportScope>
-
-      <div className="mt-6">
-        <SectionHeader title="Execution history" />
-        <ExecutionHistoryTable executions={projectExecutions} />
-      </div>
-    </div>
-  );
-}
-
-function VariantB({ application, projectExecutions }: { application: { id: number; name: string }; projectExecutions: TestExecution[] }) {
-  const range: DateRangeKey = '30D';
-  const dayBuckets = useMemo(() => bucketExecutionsByDay(projectExecutions, range), [projectExecutions]);
-  const passRateTrend = useMemo(() => computePassRateTrend(projectExecutions, range), [projectExecutions]);
-  const running = useMemo(() => currentlyRunning(projectExecutions), [projectExecutions]);
-
-  const barData = dayBuckets.map((b) => ({ date: b.date, count: b.outcomes.length }));
-
-  return (
-    <div>
-      <ExportScope>
-        <SectionHeader title="Executions overview" actions={<span className="text-xs text-[var(--color-ink-muted)]">Last 30 days</span>} />
-        <div className="mb-6 grid grid-cols-2 gap-4">
-          <Card className="p-4">
-            <p className="mb-2 text-xs font-medium text-[var(--color-ink-muted)]">Executions per day</p>
-            <ResponsiveContainer width="100%" height={180}>
-              <BarChart data={barData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
-                <XAxis dataKey="date" tick={{ fontSize: 9 }} tickFormatter={(d) => d.slice(5)} />
-                <YAxis tick={{ fontSize: 10 }} allowDecimals={false} />
-                <Tooltip />
-                <Bar dataKey="count" fill="var(--color-chart-neutral)" radius={[3, 3, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </Card>
-          <Card className="p-4">
-            <p className="mb-2 text-xs font-medium text-[var(--color-ink-muted)]">Pass rate trend</p>
-            <ResponsiveContainer width="100%" height={180}>
-              <LineChart data={passRateTrend}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
-                <XAxis dataKey="date" tick={{ fontSize: 9 }} tickFormatter={(d) => d.slice(5)} />
-                <YAxis tick={{ fontSize: 10 }} domain={[0, 100]} />
-                <Tooltip />
-                <Line type="monotone" dataKey="rate" stroke="var(--color-status-passed)" strokeWidth={2} dot={false} connectNulls />
-              </LineChart>
-            </ResponsiveContainer>
-          </Card>
-        </div>
-
-        <SectionHeader title="Currently running" />
-        {running.length === 0 ? (
-          <Card className="py-8 text-center text-sm text-[var(--color-ink-muted)]">No executions currently running for {application.name}.</Card>
-        ) : (
-          <div className="mb-2 space-y-2">
-            {running.map((e) => (
-              <Link
-                key={e.id}
-                to={`/executions/${e.id}`}
-                className="flex items-center justify-between rounded-xl border border-blue-300 bg-white px-4 py-3 hover:bg-slate-50"
-              >
-                <div>
-                  <p className="text-sm font-medium text-blue-700">{e.name}</p>
-                  <p className="mt-0.5 text-xs text-[var(--color-ink-muted)]">
-                    {e.environmentName ?? '—'} · started {formatDateTime(e.startTime)} · {e.executedTestCaseCount ?? 0} of {e.targetedTestCaseCount ?? 0} executed
-                  </p>
-                </div>
-                <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700">In Progress</span>
-              </Link>
-            ))}
-          </div>
-        )}
-      </ExportScope>
-
-      <div className="mt-6">
-        <SectionHeader title="All executions" />
-        <ExecutionHistoryTable executions={projectExecutions} />
-      </div>
-    </div>
+      <Card className="p-4">
+        <p className="text-xs font-medium text-[var(--color-ink-muted)]">
+          {label}
+        </p>
+        <p className={`mt-2 text-2xl font-semibold tracking-tight ${tone}`}>
+          {value}
+        </p>
+      </Card>
   );
 }
