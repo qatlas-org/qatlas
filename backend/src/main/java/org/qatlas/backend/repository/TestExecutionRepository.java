@@ -231,4 +231,236 @@ public interface TestExecutionRepository extends JpaRepository<TestExecution, Lo
             @Param("executor") String executor
     );
 
+    /**
+     * Earliest non-archived execution for one project.
+     * Used when Project Details is requested with ALL / lifetime.
+     */
+    @Query("""
+    SELECT MIN(e.startTime)
+    FROM TestExecution e
+    WHERE e.archived = false
+      AND e.application.id = :applicationId
+    """)
+    LocalDateTime findProjectEarliestExecutionTime(
+            @Param("applicationId") Long applicationId
+    );
+
+
+    /**
+     * Project execution totals grouped by derived execution status.
+     *
+     * RUNNING:
+     *   end time is null AND execution started within the running safeguard.
+     *
+     * Otherwise:
+     *   FAILED  -> at least one failed testcase
+     *   WARNING -> no failures, but at least one warning testcase
+     *   PASSED  -> everything else
+     *
+     * Row shape:
+     * [status, executionCount]
+     */
+    @Query(value = """
+    SELECT x.execution_status,
+           COUNT(*) AS execution_count
+    FROM (
+        SELECT te.ID,
+               CASE
+                   WHEN te.END_TIME IS NULL
+                        AND te.START_TIME >= :runningSince
+                       THEN 'RUNNING'
+
+                   WHEN SUM(
+                       CASE
+                           WHEN tc.EXECUTION_STATUS = 'FAILED'
+                           THEN 1
+                           ELSE 0
+                       END
+                   ) > 0
+                       THEN 'FAILED'
+
+                   WHEN SUM(
+                       CASE
+                           WHEN tc.EXECUTION_STATUS = 'WARNING'
+                           THEN 1
+                           ELSE 0
+                       END
+                   ) > 0
+                       THEN 'WARNING'
+
+                   ELSE 'PASSED'
+               END AS execution_status
+
+        FROM reports_db.test_execution te
+
+        LEFT JOIN reports_db.test_suite ts
+               ON ts.TEST_EXECUTION_ID = te.ID
+
+        LEFT JOIN reports_db.test_case tc
+               ON tc.TEST_SUITE_ID = ts.ID
+
+        WHERE te.IS_ARCHIVED = 0
+          AND te.APPLICATION_ID = :applicationId
+          AND te.START_TIME >= :from
+
+        GROUP BY te.ID,
+                 te.END_TIME,
+                 te.START_TIME
+    ) x
+
+    GROUP BY x.execution_status
+    """,
+            nativeQuery = true)
+    List<Object[]> countProjectExecutionsByStatus(
+            @Param("applicationId") Long applicationId,
+            @Param("from") LocalDateTime from,
+            @Param("runningSince") LocalDateTime runningSince
+    );
+
+
+    /**
+     * Project execution status trend grouped by execution start date.
+     *
+     * Row shape:
+     * [executionDate, status, executionCount]
+     */
+    @Query(value = """
+    SELECT x.execution_date,
+           x.execution_status,
+           COUNT(*) AS execution_count
+
+    FROM (
+        SELECT te.ID,
+               DATE(te.START_TIME) AS execution_date,
+
+               CASE
+                   WHEN te.END_TIME IS NULL
+                        AND te.START_TIME >= :runningSince
+                       THEN 'RUNNING'
+
+                   WHEN SUM(
+                       CASE
+                           WHEN tc.EXECUTION_STATUS = 'FAILED'
+                           THEN 1
+                           ELSE 0
+                       END
+                   ) > 0
+                       THEN 'FAILED'
+
+                   WHEN SUM(
+                       CASE
+                           WHEN tc.EXECUTION_STATUS = 'WARNING'
+                           THEN 1
+                           ELSE 0
+                       END
+                   ) > 0
+                       THEN 'WARNING'
+
+                   ELSE 'PASSED'
+               END AS execution_status
+
+        FROM reports_db.test_execution te
+
+        LEFT JOIN reports_db.test_suite ts
+               ON ts.TEST_EXECUTION_ID = te.ID
+
+        LEFT JOIN reports_db.test_case tc
+               ON tc.TEST_SUITE_ID = ts.ID
+
+        WHERE te.IS_ARCHIVED = 0
+          AND te.APPLICATION_ID = :applicationId
+          AND te.START_TIME >= :from
+
+        GROUP BY te.ID,
+                 te.START_TIME,
+                 te.END_TIME
+    ) x
+
+    GROUP BY x.execution_date,
+             x.execution_status
+
+    ORDER BY x.execution_date
+    """,
+            nativeQuery = true)
+    List<Object[]> countProjectExecutionsByDayAndStatus(
+            @Param("applicationId") Long applicationId,
+            @Param("from") LocalDateTime from,
+            @Param("runningSince") LocalDateTime runningSince
+    );
+
+
+    /**
+     * Individual project executions for the interactive execution chart.
+     *
+     * Each row represents exactly one execution in the selected project/range.
+     * The frontend uses executionId to navigate directly to /executions/{id}.
+     *
+     * Row shape:
+     * [executionId, executionName, executionDate, executionStatus]
+     */
+    @Query(value = """
+    SELECT x.execution_id,
+           x.execution_name,
+           x.execution_date,
+           x.execution_status
+    FROM (
+        SELECT te.ID AS execution_id,
+               te.NAME AS execution_name,
+               DATE(te.START_TIME) AS execution_date,
+               te.START_TIME AS execution_start_time,
+
+               CASE
+                   WHEN te.END_TIME IS NULL
+                        AND te.START_TIME >= :runningSince
+                       THEN 'RUNNING'
+
+                   WHEN SUM(
+                       CASE
+                           WHEN tc.EXECUTION_STATUS = 'FAILED'
+                           THEN 1
+                           ELSE 0
+                       END
+                   ) > 0
+                       THEN 'FAILED'
+
+                   WHEN SUM(
+                       CASE
+                           WHEN tc.EXECUTION_STATUS = 'WARNING'
+                           THEN 1
+                           ELSE 0
+                       END
+                   ) > 0
+                       THEN 'WARNING'
+
+                   ELSE 'PASSED'
+               END AS execution_status
+
+        FROM reports_db.test_execution te
+
+        LEFT JOIN reports_db.test_suite ts
+               ON ts.TEST_EXECUTION_ID = te.ID
+
+        LEFT JOIN reports_db.test_case tc
+               ON tc.TEST_SUITE_ID = ts.ID
+
+        WHERE te.IS_ARCHIVED = 0
+          AND te.APPLICATION_ID = :applicationId
+          AND te.START_TIME >= :from
+
+        GROUP BY te.ID,
+                 te.NAME,
+                 te.START_TIME,
+                 te.END_TIME
+    ) x
+
+    ORDER BY x.execution_start_time,
+             x.execution_id
+    """,
+            nativeQuery = true)
+    List<Object[]> findProjectExecutionBlocks(
+            @Param("applicationId") Long applicationId,
+            @Param("from") LocalDateTime from,
+            @Param("runningSince") LocalDateTime runningSince
+    );
+
 }

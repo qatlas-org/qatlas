@@ -70,6 +70,49 @@ export interface DashboardStats {
   projects: DashboardProjectSummary[];
 }
 
+export interface ProjectDailyExecutionTrend {
+  date: string;
+  passed: number;
+  failed: number;
+  running: number;
+}
+
+export interface ProjectPassRateTrend {
+  date: string;
+  passRate: number | null;
+}
+
+export type ProjectExecutionBlockStatus =
+    | 'PASSED'
+    | 'FAILED'
+    | 'WARNING'
+    | 'RUNNING';
+
+export interface ProjectExecutionBlock {
+  executionId: number;
+  executionName: string;
+  date: string;
+  status: ProjectExecutionBlockStatus;
+}
+
+export interface ProjectExecutionStats {
+  applicationId: number;
+  applicationName: string;
+
+  /**
+   * null means ALL / lifetime.
+   */
+  from: string | null;
+
+  totalExecutions: number;
+  passedExecutions: number;
+  failedExecutions: number;
+  inProgressExecutions: number;
+
+  dailyExecutions: ProjectDailyExecutionTrend[];
+  executionBlocks: ProjectExecutionBlock[];
+  passRateTrend: ProjectPassRateTrend[];
+}
 
 export interface Application {
   id: number;
@@ -141,6 +184,7 @@ export interface TestCase {
   passedTestStepCount?: number;
   failedTestStepCount?: number;
   testStepCountWithWarnings?: number;
+  referenceId?: string;
 }
 
 

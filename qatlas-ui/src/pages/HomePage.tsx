@@ -642,6 +642,7 @@ export function HomePage() {
                             <ProjectCard
                                 key={card.application.id}
                                 data={card}
+                                range={range}
                             />
 
                         )

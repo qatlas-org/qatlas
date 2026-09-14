@@ -21,7 +21,8 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-
+import org.qatlas.backend.exception.ApplicationNotFoundException;
+import org.qatlas.backend.vo.ProjectExecutionStatsVO;
 
 @Service
 public class DashboardServiceImpl implements DashboardService {
@@ -128,6 +129,330 @@ public class DashboardServiceImpl implements DashboardService {
     }
 
 
+    @Override
+    @Transactional(readOnly = true)
+    public ProjectExecutionStatsVO getProjectExecutionStats(
+            Long applicationId,
+            LocalDateTime from) {
+
+        Application application =
+                applicationRepository
+                        .findById(applicationId)
+                        .orElseThrow(
+                                () -> new ApplicationNotFoundException(applicationId)
+                        );
+
+        /*
+         * null means ALL / lifetime.
+         *
+         * For ALL we resolve the effective start time to the first
+         * non-archived execution belonging to this project.
+         */
+        LocalDateTime effectiveFrom = from;
+
+        if (effectiveFrom == null) {
+
+            effectiveFrom =
+                    testExecutionRepository
+                            .findProjectEarliestExecutionTime(applicationId);
+
+            /*
+             * Project exists but has never been executed.
+             */
+            if (effectiveFrom == null) {
+                effectiveFrom = LocalDate.now().atStartOfDay();
+            }
+        }
+
+        LocalDateTime runningSince =
+                LocalDateTime.now().minusHours(24);
+
+
+        ProjectExecutionStatsVO stats =
+                new ProjectExecutionStatsVO();
+
+        stats.setApplicationId(application.getId());
+        stats.setApplicationName(application.getName());
+
+        /*
+         * Preserve null in the response for ALL.
+         */
+        stats.setFrom(from);
+
+
+        /*
+         * ---------------------------------------------------------
+         * Execution-level KPI counts
+         * ---------------------------------------------------------
+         */
+        long total = 0;
+        long passed = 0;
+        long failed = 0;
+        long running = 0;
+
+        /*
+         * WARNING is intentionally kept separate internally.
+         *
+         * The Figma does not currently expose a Warning KPI,
+         * but warnings are still executions and must contribute
+         * to Total and to the pass-rate denominator.
+         */
+        long warning = 0;
+
+
+        List<Object[]> statusRows =
+                testExecutionRepository
+                        .countProjectExecutionsByStatus(
+                                applicationId,
+                                effectiveFrom,
+                                runningSince
+                        );
+
+
+        for (Object[] row : statusRows) {
+
+            String status = row[0].toString();
+
+            long count =
+                    ((Number) row[1]).longValue();
+
+            total += count;
+
+            switch (status) {
+
+                case "PASSED":
+                    passed = count;
+                    break;
+
+                case "FAILED":
+                    failed = count;
+                    break;
+
+                case "RUNNING":
+                    running = count;
+                    break;
+
+                case "WARNING":
+                    warning = count;
+                    break;
+
+                default:
+                    break;
+            }
+        }
+
+
+        stats.setTotalExecutions(total);
+        stats.setPassedExecutions(passed);
+        stats.setFailedExecutions(failed);
+        stats.setInProgressExecutions(running);
+
+
+        /*
+         * ---------------------------------------------------------
+         * Daily graph data
+         * ---------------------------------------------------------
+         *
+         * Only dates with actual executions are added.
+         * This keeps ALL / lifetime responses compact.
+         */
+        Map<LocalDate, ProjectExecutionStatsVO.DailyExecutionTrend>
+                dailyExecutions = new LinkedHashMap<>();
+
+        Map<LocalDate, Long>
+                warningByDay = new HashMap<>();
+
+
+        List<Object[]> dailyRows =
+                testExecutionRepository
+                        .countProjectExecutionsByDayAndStatus(
+                                applicationId,
+                                effectiveFrom,
+                                runningSince
+                        );
+
+
+        for (Object[] row : dailyRows) {
+
+            LocalDate executionDate =
+                    toLocalDate(row[0]);
+
+            String status =
+                    row[1].toString();
+
+            long count =
+                    ((Number) row[2]).longValue();
+
+
+            ProjectExecutionStatsVO.DailyExecutionTrend trend =
+                    dailyExecutions.computeIfAbsent(
+                            executionDate,
+                            date -> {
+                                ProjectExecutionStatsVO.DailyExecutionTrend value =
+                                        new ProjectExecutionStatsVO.DailyExecutionTrend();
+
+                                value.setDate(date.toString());
+
+                                return value;
+                            }
+                    );
+
+
+            switch (status) {
+
+                case "PASSED":
+                    trend.setPassed(count);
+                    break;
+
+                case "FAILED":
+                    trend.setFailed(count);
+                    break;
+
+                case "RUNNING":
+                    trend.setRunning(count);
+                    break;
+
+                case "WARNING":
+                    warningByDay.put(
+                            executionDate,
+                            count
+                    );
+                    break;
+
+                default:
+                    break;
+            }
+        }
+
+
+        stats.setDailyExecutions(
+                List.copyOf(dailyExecutions.values())
+        );
+
+
+        /*
+         * ---------------------------------------------------------
+         * Individual execution blocks for the interactive graph
+         * ---------------------------------------------------------
+         *
+         * These are intentionally lightweight: the frontend only needs
+         * the execution id/name/date/status to render a clickable block
+         * and navigate to /executions/{id}.
+         */
+        List<ProjectExecutionStatsVO.ExecutionBlock> executionBlocks =
+                new ArrayList<>();
+
+        List<Object[]> executionBlockRows =
+                testExecutionRepository.findProjectExecutionBlocks(
+                        applicationId,
+                        effectiveFrom,
+                        runningSince
+                );
+
+        for (Object[] row : executionBlockRows) {
+
+            ProjectExecutionStatsVO.ExecutionBlock block =
+                    new ProjectExecutionStatsVO.ExecutionBlock();
+
+            block.setExecutionId(
+                    ((Number) row[0]).longValue()
+            );
+
+            block.setExecutionName(
+                    row[1] != null
+                            ? row[1].toString()
+                            : "Execution " + block.getExecutionId()
+            );
+
+            block.setDate(
+                    toLocalDate(row[2]).toString()
+            );
+
+            block.setStatus(
+                    row[3] != null
+                            ? row[3].toString()
+                            : "PASSED"
+            );
+
+            executionBlocks.add(block);
+        }
+
+        stats.setExecutionBlocks(executionBlocks);
+
+
+        /*
+         * ---------------------------------------------------------
+         * Pass-rate trend
+         * ---------------------------------------------------------
+         *
+         * Same rule as the main dashboard:
+         *
+         * passed / (passed + failed + warning)
+         *
+         * Running executions are excluded because they have not
+         * completed yet.
+         */
+        List<ProjectExecutionStatsVO.PassRateTrend>
+                passRateTrend = new ArrayList<>();
+
+
+        for (Map.Entry<
+                LocalDate,
+                ProjectExecutionStatsVO.DailyExecutionTrend> entry
+                : dailyExecutions.entrySet()) {
+
+            LocalDate trendDate =
+                    entry.getKey();
+
+            ProjectExecutionStatsVO.DailyExecutionTrend daily =
+                    entry.getValue();
+
+
+            long dailyWarning =
+                    warningByDay.getOrDefault(
+                            trendDate,
+                            0L
+                    );
+
+
+            long completed =
+                    daily.getPassed()
+                            + daily.getFailed()
+                            + dailyWarning;
+
+
+            ProjectExecutionStatsVO.PassRateTrend passRate =
+                    new ProjectExecutionStatsVO.PassRateTrend();
+
+            passRate.setDate(
+                    trendDate.toString()
+            );
+
+
+            if (completed > 0) {
+
+                double rate =
+                        ((double) daily.getPassed()
+                                / completed) * 100.0;
+
+                passRate.setPassRate(
+                        Math.round(rate * 10.0) / 10.0
+                );
+
+            } else {
+
+                passRate.setPassRate(null);
+            }
+
+
+            passRateTrend.add(passRate);
+        }
+
+
+        stats.setPassRateTrend(passRateTrend);
+
+        return stats;
+    }
     private void populateStatusTotals(
             DashboardStatsVO stats,
             LocalDateTime from) {
