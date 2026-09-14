@@ -45,7 +45,6 @@ export function TestCaseDetailPage() {
     const [query, setQuery] = useState('');
     const [page, setPage] = useState(1);
     const [slideshowOpen, setSlideshowOpen] = useState(false);
-    const [selectedAttachmentPath, setSelectedAttachmentPath] = useState<string | undefined>(undefined);
     const stepRefs = useRef<Record<number, HTMLDivElement | null>>({});
 
     const filteredSteps = useMemo(() => {
@@ -71,18 +70,11 @@ export function TestCaseDetailPage() {
         }, 50);
     }
 
-    function openAttachment(relativePath?: string) {
-        setSelectedAttachmentPath(relativePath);
-        setSlideshowOpen(true);
-    }
-
     function openSlideshow() {
-        setSelectedAttachmentPath(undefined);
         setSlideshowOpen(true);
     }
 
     function closeSlideshow() {
-        setSelectedAttachmentPath(undefined);
         setSlideshowOpen(false);
     }
 
@@ -211,10 +203,11 @@ export function TestCaseDetailPage() {
 
                                                 if (isImage && url) {
                                                     return (
-                                                        <button
-                                                            type="button"
+                                                        <a
                                                             key={attachment.id ?? `${step.id}-${attachmentIndex}`}
-                                                            onClick={() => openAttachment(attachment.attachmentRelativePath)}
+                                                            href={url}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
                                                             title={`Open ${fileName}`}
                                                             className="h-12 w-12 shrink-0 cursor-pointer overflow-hidden rounded-md border border-[var(--color-border)] bg-[var(--color-surface-muted)] hover:ring-2 hover:ring-slate-400 hover:ring-offset-1"
                                                         >
@@ -223,21 +216,35 @@ export function TestCaseDetailPage() {
                                                                 alt={fileName}
                                                                 className="h-full w-full object-cover"
                                                             />
-                                                        </button>
+                                                        </a>
+                                                    );
+                                                }
+
+                                                if (url) {
+                                                    return (
+                                                        <a
+                                                            key={attachment.id ?? `${step.id}-${attachmentIndex}`}
+                                                            href={url}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            title={`Open ${fileName}`}
+                                                            className="flex h-12 w-12 shrink-0 cursor-pointer flex-col items-center justify-center rounded-md border border-[var(--color-border)] bg-[var(--color-surface-muted)] text-[9px] font-semibold text-slate-600 hover:ring-2 hover:ring-slate-400 hover:ring-offset-1"
+                                                        >
+                                                            <span>{fileType}</span>
+                                                            <span className="mt-0.5 max-w-full truncate px-1 text-[9px] font-medium">FILE</span>
+                                                        </a>
                                                     );
                                                 }
 
                                                 return (
-                                                    <button
-                                                        type="button"
+                                                    <div
                                                         key={attachment.id ?? `${step.id}-${attachmentIndex}`}
-                                                        onClick={() => openAttachment(attachment.attachmentRelativePath)}
-                                                        title={`Open ${fileName}`}
-                                                        className="flex h-12 w-12 shrink-0 cursor-pointer flex-col items-center justify-center rounded-md border border-[var(--color-border)] bg-[var(--color-surface-muted)] text-[9px] font-semibold text-slate-600 hover:ring-2 hover:ring-slate-400 hover:ring-offset-1"
+                                                        title={fileName}
+                                                        className="flex h-12 w-12 shrink-0 flex-col items-center justify-center rounded-md border border-[var(--color-border)] bg-[var(--color-surface-muted)] text-[9px] font-semibold text-slate-400"
                                                     >
                                                         <span>{fileType}</span>
                                                         <span className="mt-0.5 max-w-full truncate px-1 text-[9px] font-medium">FILE</span>
-                                                    </button>
+                                                    </div>
                                                 );
                                             })}
                                         </div>
@@ -262,7 +269,6 @@ export function TestCaseDetailPage() {
                 <SlideshowModal
                     testCaseId={testCase.id}
                     testCaseName={testCase.name}
-                    initialAttachmentPath={selectedAttachmentPath}
                     onClose={closeSlideshow}
                 />
             )}

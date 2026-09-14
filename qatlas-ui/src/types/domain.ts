@@ -184,6 +184,7 @@ export interface TestCase {
   passedTestStepCount?: number;
   failedTestStepCount?: number;
   testStepCountWithWarnings?: number;
+  referenceId?: string;
 }
 
 
