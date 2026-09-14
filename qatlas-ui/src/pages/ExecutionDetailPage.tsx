@@ -42,9 +42,9 @@ const COLUMN_ORDER: ColumnKey[] = [
 ];
 
 const DEFAULT_COLUMN_WIDTHS: Record<ColumnKey, number> = {
-  suite: 14,
-  testCase: 28,
-  reference: 30,
+  suite: 10,
+  testCase: 20,
+  reference: 42,
   duration: 8,
   status: 11,
   actions: 9,

@@ -139,7 +139,7 @@ export function TestCaseDetailPage() {
                 className="mb-4"
                 rows={[
                     { label: 'Test Case Name', value: testCase.name },
-                    { label: 'Reference', value: deriveReference(testCase) },
+                    { label: 'Reference', value: deriveReference(testCase).replace(/_/g, '_\u200B') },
                 ]}
             />
 
