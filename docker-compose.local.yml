@@ -20,9 +20,11 @@ services:
     container_name: qatlas-ui
     restart: unless-stopped
     ports:
-      - "1901:80"
+      - "80:80"
     depends_on:
       - backend
+    volumes:
+      - /home/uni-dell/IdeaProjects/reporting-data/attachments:/app/data/attachments:ro
     networks:
       - qatlas_default
 

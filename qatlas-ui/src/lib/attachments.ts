@@ -18,7 +18,7 @@ export function attachmentUrl(relativePath?: string): string | undefined {
 
   const base = import.meta.env.VITE_API_BASE_URL ?? '';
 
-  return `${base}/${cleaned}`;
+  return `${base}/attachment/${cleaned}`;
 }
 
 export function attachmentExtension(
