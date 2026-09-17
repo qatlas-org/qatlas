@@ -12,15 +12,19 @@ services:
       - "${BACKEND_PORT:-1900}:8080"
 
     environment:
-      SPRING_DATASOURCE_URL: jdbc:mysql://${DB_HOST:-reporting-mysql}:3306/${DB_NAME:-reports_db}
-      SPRING_DATASOURCE_USERNAME: ${DB_USER:-reports_user}
+      SPRING_DATASOURCE_URL: jdbc:mysql://${DB_HOST}:3306/${DB_NAME}
+      SPRING_DATASOURCE_USERNAME: ${DB_USER}
       SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
       JAVA_OPTS: ${JAVA_OPTS:--Xmx1024m}
 
+    volumes:
+      - ${DATA_PATH}:/app/data
+
     networks:
-      qatlas_default:
+      qatlas_network:
         aliases:
           - backend
+      db_network:
 
   classic:
     build:
@@ -42,10 +46,12 @@ services:
       - backend
 
     volumes:
-      - ${ATTACHMENTS_PATH}:/app/data/attachments:ro
+      - ${ATTACHMENTS_PATH}:/app/data/attachments
 
     networks:
-      - qatlas_default
+      qatlas_network:
+        aliases:
+          - qatlas-classic
 
   ui:
     build:
@@ -64,14 +70,20 @@ services:
 
     depends_on:
       - backend
+      - classic
 
     volumes:
-      - ${ATTACHMENTS_PATH}:/app/data/attachments:ro
+      - ${ATTACHMENTS_PATH}:/app/data/attachments
 
     networks:
-      - qatlas_default
-
+      - qatlas_network
 
 networks:
-  qatlas_default:
+
+  qatlas_network:
     external: true
+    name: ${QATLAS_NETWORK}
+
+  db_network:
+    external: true
+    name: ${DB_NETWORK}

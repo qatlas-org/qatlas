@@ -1,67 +1,76 @@
-version: '3.8'
 services:
-  mysql_db:
-    container_name: mysql
-    image: mysql/mysql-server
-    environment:
-      MYSQL_DATABASE: 'reports_db'
-      MYSQL_USER: 'reports_user'
-      MYSQL_PASSWORD: '${MYSQL_PASSWORD:-password}'
-    restart: always
-    healthcheck:
-      test: "/usr/bin/mysql --user=reports_user --password=${MYSQL_PASSWORD:-password} --execute \"show databases;\""
-      interval: 5s
-      retries: 5
-      timeout: 1s
-    volumes:
-      - ./mysql:/var/lib/mysql
-
-  db_admin:
-    container_name: mysqldb
-    image: adminer
-    depends_on:
-      mysql_db:
-        condition: service_healthy
-    restart: always
-    ports:
-      - "${ADMINER_PORT:-9090}:8080"
 
   backend:
-    container_name: backend
-    image: qatlas/backend:${QATLAS_VERSION:-latest}
-    restart: always
-    depends_on:
-      mysql_db:
-        condition: service_healthy
+    image: qatlas/backend:${QATLAS_VERSION}
+    container_name: qatlas-backend
+    restart: unless-stopped
+
     ports:
-      - "${BACKEND_PORT:-8080}:8080"
-    volumes:
-      - ./data:/app/data
-      - ./data/hdump:/app/data/hdump
+      - "${BACKEND_PORT:-1900}:8080"
+
     environment:
-      - app.open-api.servers[0].url=http://localhost:${UI_PORT:-9092}
-      - app.open-api.servers[0].description=Local Server
-      - JAVA_OPTS=-XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/app/data/hdump -Xmx1024m -XX:ReservedCodeCacheSize=32M -XX:MaxDirectMemorySize=10M
-    mem_limit: 3072M
+      SPRING_DATASOURCE_URL: jdbc:mysql://${DB_HOST}:3306/${DB_NAME}
+      SPRING_DATASOURCE_USERNAME: ${DB_USER}
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
+      JAVA_OPTS: ${JAVA_OPTS:--Xmx1024m}
 
-  web:
-    container_name: frontend
-    image: qatlas/frontend:${QATLAS_VERSION:-latest}
-    restart: always
+    volumes:
+      - ${DATA_PATH}:/app/data
+
+    networks:
+      qatlas_network:
+        aliases:
+          - backend
+      db_network:
+
+  classic:
+    image: qatlas/frontend:${QATLAS_VERSION}
+    container_name: qatlas-classic
+    restart: unless-stopped
+
+    ports:
+      - "${CLASSIC_UI_PORT:-1902}:80"
+
+    environment:
+      LISTENING_PORT: 80
+      BACKEND_SERVICE_NAME: backend
+      BACKEND_SERVICE_PORT: 8080
+
     depends_on:
       - backend
-    ports:
-      - "${LEGACY_UI_PORT:-9091}:80"
-    volumes:
-      - ./data/attachments:/app/data/attachment:ro
 
-  web-react:
-    container_name: frontend-react
-    image: qatlas/qatlas-ui:${QATLAS_VERSION:-latest}
-    restart: always
+    volumes:
+      - ${ATTACHMENTS_PATH}:/app/data/attachments
+
+    networks:
+      qatlas_network:
+        aliases:
+          - qatlas-classic
+
+  ui:
+    image: qatlas/qatlas-ui:${QATLAS_VERSION}
+    container_name: qatlas-ui
+    restart: unless-stopped
+
+    ports:
+      - "${UI_PORT:-80}:80"
+
     depends_on:
       - backend
-    ports:
-      - "${UI_PORT:-9092}:80"
+      - classic
+
     volumes:
-      - ./data/attachments:/app/data/attachment:ro
+      - ${ATTACHMENTS_PATH}:/app/data/attachments
+
+    networks:
+      - qatlas_network
+
+networks:
+
+  qatlas_network:
+    external: true
+    name: ${QATLAS_NETWORK}
+
+  db_network:
+    external: true
+    name: ${DB_NETWORK}
