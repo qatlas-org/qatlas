@@ -1,32 +1,52 @@
 services:
+
   backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
     image: qatlas/backend:${QATLAS_VERSION}
     container_name: qatlas-backend
     restart: unless-stopped
+
     ports:
-      - "1900:8080"
+      - "${BACKEND_PORT:-1900}:8080"
+
     environment:
-      SPRING_DATASOURCE_URL: jdbc:mysql://reporting-mysql:3306/reports_db
-      SPRING_DATASOURCE_USERNAME: reports_user
-      SPRING_DATASOURCE_PASSWORD: password
-      JAVA_OPTS: -Xmx1024m
+      SPRING_DATASOURCE_URL: jdbc:mysql://${DB_HOST:-reporting-mysql}:3306/${DB_NAME:-reports_db}
+      SPRING_DATASOURCE_USERNAME: ${DB_USER:-reports_user}
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
+      JAVA_OPTS: ${JAVA_OPTS:--Xmx1024m}
+
     networks:
       qatlas_default:
         aliases:
           - backend
 
+
   ui:
+    build:
+      context: ./qatlas-ui
+      dockerfile: Dockerfile
+      args:
+        QATLAS_UI_VERSION: ${QATLAS_VERSION}
+        QATLAS_API_CLIENT_VERSION: ${QATLAS_VERSION}
+
     image: qatlas/qatlas-ui:${QATLAS_VERSION}
     container_name: qatlas-ui
     restart: unless-stopped
+
     ports:
-      - "80:80"
+      - "${UI_PORT:-80}:80"
+
     depends_on:
       - backend
+
     volumes:
-      - /home/uni-dell/IdeaProjects/reporting-data/attachments:/app/data/attachments:ro
+      - ${ATTACHMENTS_PATH}:/app/data/attachments:ro
+
     networks:
       - qatlas_default
+
 
 networks:
   qatlas_default:
