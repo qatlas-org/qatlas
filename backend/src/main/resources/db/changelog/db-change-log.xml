@@ -8,7 +8,7 @@
 	</changeSet>
 	<changeSet id="1" author="qatlas">
 		<createTable tableName="application" schemaName="reports_db">
-			<column name="id" type="bigint" autoIncrement="true" startWith="1" incrementBy="1">
+			<column name="id" type="bigint" autoIncrement="true" startWith="1">
 				<constraints primaryKey="true" nullable="false" primaryKeyName="APPLICATION_ID"/>
 			</column>
 			<column name="name" type="varchar(50)">
@@ -20,7 +20,7 @@
 	</changeSet>
 	<changeSet id="2" author="qatlas">
 		<createTable tableName="environment" schemaName="reports_db">
-			<column name="id" type="bigint" autoIncrement="true" startWith="1" incrementBy="1">
+			<column name="id" type="bigint" autoIncrement="true" startWith="1">
 				<constraints primaryKey="true" nullable="false" primaryKeyName="ENVIRONMENT_ID"/>
 			</column>
 			<column name="name" type="varchar(50)">
@@ -32,7 +32,7 @@
 	</changeSet>
 	<changeSet id="3" author="qatlas">
 		<createTable tableName="test_execution" schemaName="reports_db">
-			<column name="id" type="bigint" autoIncrement="true" startWith="1" incrementBy="1">
+			<column name="id" type="bigint" autoIncrement="true" startWith="1">
 				<constraints primaryKey="true" nullable="false" primaryKeyName="TEST_EXECUTION_ID"/>
 			</column>
 			<column name="name" type="varchar(50)">
@@ -66,7 +66,7 @@
 	</changeSet>
 	<changeSet id="4" author="qatlas">
 		<createTable tableName="test_suite" schemaName="reports_db">
-			<column name="id" type="bigint" autoIncrement="true" startWith="1" incrementBy="1">
+			<column name="id" type="bigint" autoIncrement="true" startWith="1">
 				<constraints primaryKey="true" nullable="false" primaryKeyName="TEST_SUITE_ID"/>
 			</column>
 			<column name="TEST_EXECUTION_ID" type="bigint">
@@ -85,7 +85,7 @@
 	</changeSet>
 	<changeSet id="5" author="qatlas">
 		<createTable tableName="test_case" schemaName="reports_db">
-			<column name="id" type="bigint" autoIncrement="true" startWith="1" incrementBy="1">
+			<column name="id" type="bigint" autoIncrement="true" startWith="1">
 				<constraints primaryKey="true" nullable="false" primaryKeyName="TEST_case_ID"/>
 			</column>
 			<column name="TEST_SUITE_ID" type="bigint">
@@ -105,7 +105,7 @@
 	</changeSet>
 	<changeSet id="6" author="qatlas">
 		<createTable tableName="test_step" schemaName="reports_db">
-			<column name="id" type="bigint" autoIncrement="true" startWith="1" incrementBy="1">
+			<column name="id" type="bigint" autoIncrement="true" startWith="1">
 				<constraints primaryKey="true" nullable="false" primaryKeyName="TEST_STEP_ID"/>
 			</column>
 			<column name="TEST_CASE_ID" type="bigint">
@@ -124,7 +124,7 @@
 	</changeSet>
 	<changeSet id="7" author="qatlas">
 		<createTable tableName="test_step_attachment" schemaName="reports_db">
-			<column name="id" type="bigint" autoIncrement="true" startWith="1" incrementBy="1">
+			<column name="id" type="bigint" autoIncrement="true" startWith="1">
 				<constraints primaryKey="true" nullable="false" primaryKeyName="TEST_STEP_attachment_ID"/>
 			</column>
 			<column name="TEST_STEP_ID" type="bigint">
