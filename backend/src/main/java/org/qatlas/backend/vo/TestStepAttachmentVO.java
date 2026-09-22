@@ -7,7 +7,6 @@ import io.swagger.v3.oas.annotations.media.Schema;
 
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Null;
-import jakarta.validation.constraints.Size;
 
 @Schema(name = "TestStepAttachment")
 public class TestStepAttachmentVO {
@@ -32,10 +31,7 @@ public class TestStepAttachmentVO {
     private AttachmentType attachmentType;
 
     @NotNull(message = "Test Step Attachment File Name should not be empty.")
-    @Size(
-        max = 150,
-        message = "Test Step Attachment File Name should not exceed 150 characters."
-    )
+
     private String fileName;
 
     @NotNull(message = "Test Step Attachment Content should not be empty.")
