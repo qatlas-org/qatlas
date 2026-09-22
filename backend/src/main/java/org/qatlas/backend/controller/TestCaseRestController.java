@@ -5,7 +5,6 @@ import org.qatlas.backend.service.TestCaseService;
 import org.qatlas.backend.service.TestStepService;
 import org.qatlas.backend.vo.TestCaseVO;
 import org.qatlas.backend.vo.TestStepVO;
-import org.qatlas.backend.vo.TestSuiteVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -15,7 +14,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.Past;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -99,7 +97,6 @@ public class TestCaseRestController {
             final ExecutionStatus executionStatus,
             @PathVariable
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
-            @Past
             final LocalDateTime executionStartTime) {
         return testCaseService.update(id, executionStatus, executionStartTime, null);
     }
@@ -117,7 +114,6 @@ public class TestCaseRestController {
             final ExecutionStatus executionStatus,
             @PathVariable
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
-            @Past
             final LocalDateTime executionEndTime) {
         return testCaseService.update(id, executionStatus, null, executionEndTime);
     }

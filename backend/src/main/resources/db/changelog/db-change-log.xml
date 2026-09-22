@@ -261,4 +261,24 @@
 			<column name="START_TIME"/>
 		</createIndex>
 	</changeSet>
+
+	<!--
+		Fix legacy TEST_EXECUTION records where IS_ARCHIVED is NULL
+		and prevent NULL values from being stored in the future.
+	-->
+	<changeSet id="fix-test-execution-is-archived-null" author="qatlas">
+		<update tableName="test_execution" schemaName="reports_db">
+			<column name="IS_ARCHIVED" valueBoolean="false"/>
+			<where>IS_ARCHIVED IS NULL</where>
+		</update>
+
+		<addNotNullConstraint
+				schemaName="reports_db"
+				tableName="test_execution"
+				columnName="IS_ARCHIVED"
+				columnDataType="BOOLEAN"
+				defaultNullValue="false"/>
+	</changeSet>
+
+
 </databaseChangeLog>
