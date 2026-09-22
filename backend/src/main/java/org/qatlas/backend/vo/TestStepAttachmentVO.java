@@ -33,8 +33,8 @@ public class TestStepAttachmentVO {
 
     @NotNull(message = "Test Step Attachment File Name should not be empty.")
     @Size(
-        max = 50,
-        message = "Test Step Attachment File Name should not exceed 50 characters."
+        max = 150,
+        message = "Test Step Attachment File Name should not exceed 150 characters."
     )
     private String fileName;
 
