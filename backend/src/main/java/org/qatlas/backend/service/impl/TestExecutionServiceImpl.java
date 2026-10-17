@@ -100,13 +100,19 @@ public class TestExecutionServiceImpl implements TestExecutionService {
     public TestExecutionVO create(final TestExecutionVO testExecutionVO) {
         Application application = applicationService
                 .getApplication(testExecutionVO.getApplicationId());
+
         Environment environment = environmentService
                 .getEnvironment(testExecutionVO.getEnvironmentId());
+
+        TestExecution testExecution =
+                testExecutionMapper.map(testExecutionVO, application, environment);
+
+        if (testExecution.getArchived() == null) {
+            testExecution.setArchived(false);
+        }
+
         return testExecutionMapper.map(
-            testExecutionRepository.save(
-                testExecutionMapper.map(
-                    testExecutionVO, application, environment)
-            )
+                testExecutionRepository.save(testExecution)
         );
     }
 
