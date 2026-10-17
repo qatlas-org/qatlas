@@ -34,7 +34,7 @@ public class TestStepAttachment implements Serializable {
 
     private AttachmentType attachmentType;
 
-    @Column(name = "ATTACHMENT_NAME", nullable = false, length = 50, updatable = false)
+    @Column(name = "ATTACHMENT_NAME", nullable = false, length = 255, updatable = false)
     private String fileName;
 
     @Transient
