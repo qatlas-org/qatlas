@@ -10,6 +10,7 @@ import { TestCaseDetailPage } from './pages/TestCaseDetailPage';
 import { ApplicationsPage } from './pages/ApplicationsPage';
 import { EnvironmentsPage } from './pages/EnvironmentsPage';
 import { AuthProvider } from './hooks/useAuth';
+import { VersionFooter } from './components/VersionFooter';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -42,7 +43,9 @@ function App() {
               <Route path="/environments" element={<EnvironmentsPage />} />
             </Route>
           </Routes>
+          <VersionFooter />
         </BrowserRouter>
+
       </AuthProvider>
     </QueryClientProvider>
   );

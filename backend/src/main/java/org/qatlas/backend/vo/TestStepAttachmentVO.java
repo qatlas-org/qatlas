@@ -7,7 +7,6 @@ import io.swagger.v3.oas.annotations.media.Schema;
 
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Null;
-import jakarta.validation.constraints.Size;
 
 @Schema(name = "TestStepAttachment")
 public class TestStepAttachmentVO {
@@ -32,10 +31,7 @@ public class TestStepAttachmentVO {
     private AttachmentType attachmentType;
 
     @NotNull(message = "Test Step Attachment File Name should not be empty.")
-    @Size(
-        max = 50,
-        message = "Test Step Attachment File Name should not exceed 50 characters."
-    )
+
     private String fileName;
 
     @NotNull(message = "Test Step Attachment Content should not be empty.")
@@ -43,7 +39,7 @@ public class TestStepAttachmentVO {
     private byte[] fileContent;
 
     @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
-    private boolean fileContentBase64Encoded;
+    private Boolean fileContentBase64Encoded;
 
     @JsonProperty(access = JsonProperty.Access.READ_ONLY)
     private String attachmentRelativePath;
@@ -89,10 +85,10 @@ public class TestStepAttachmentVO {
     }
 
     public boolean isFileContentBase64Encoded() {
-        return fileContentBase64Encoded;
+        return Boolean.TRUE.equals(fileContentBase64Encoded);
     }
 
-    public void setFileContentBase64Encoded(boolean fileContentBase64Encoded) {
+    public void setFileContentBase64Encoded(Boolean fileContentBase64Encoded) {
         this.fileContentBase64Encoded = fileContentBase64Encoded;
     }
 

@@ -1,9 +1,118 @@
 // Types mirror the QAtlas backend REST DTOs (org.qatlas.backend.*)
 // Kept hand-written (not codegen) so we can trim to what the UI needs.
 
-export type ExecutionStatus = 'PROGRESS' | 'PASSED' | 'FAILED' | 'WARNING' | 'SKIPPED';
-
+export type ExecutionStatus =
+    | 'PLANNED'
+    | 'PROGRESS'
+    | 'PASSED'
+    | 'FAILED'
+    | 'WARNING'
+    | 'SKIPPED';
 export type AttachmentType = 'SNAPSHOT' | 'OTHER';
+
+
+export interface DashboardDailyTrend {
+  date: string;
+  executions: number;
+  passed: number;
+  failed: number;
+  warning: number;
+}
+
+
+export interface DashboardMachineStats {
+  machine: string;
+  executions: number;
+}
+
+
+export interface DashboardProjectSummary {
+  applicationId: number;
+  applicationName: string;
+  applicationDescription?: string | null;
+
+  latestExecutionId?: number | null;
+  latestExecutedBy?: string | null;
+  latestSystemName?: string | null;
+  latestStartTime?: string | null;
+  latestStatus?: 'PASSED' | 'FAILED' | 'WARNING' | 'RUNNING' | null;
+
+  totalExecutions: number;
+  passedExecutions: number;
+  failedExecutions: number;
+  warningExecutions: number;
+  runningExecutions: number;
+
+  /**
+   * Every executor/machine that executed this project
+   * within the selected dashboard date range.
+   */
+  executors: string[];
+}
+
+
+export interface DashboardStats {
+  /**
+   * null means ALL / Lifetime.
+   */
+  from: string | null;
+
+  activeProjects: number;
+  executions: number;
+  passed: number;
+  failed: number;
+  warning: number;
+  passRate: number | null;
+  currentlyRunning: number;
+
+  dailyTrend: DashboardDailyTrend[];
+  executionsByMachine: DashboardMachineStats[];
+  projects: DashboardProjectSummary[];
+}
+
+export interface ProjectDailyExecutionTrend {
+  date: string;
+  passed: number;
+  failed: number;
+  running: number;
+}
+
+export interface ProjectPassRateTrend {
+  date: string;
+  passRate: number | null;
+}
+
+export type ProjectExecutionBlockStatus =
+    | 'PASSED'
+    | 'FAILED'
+    | 'WARNING'
+    | 'RUNNING';
+
+export interface ProjectExecutionBlock {
+  executionId: number;
+  executionName: string;
+  date: string;
+  status: ProjectExecutionBlockStatus;
+}
+
+export interface ProjectExecutionStats {
+  applicationId: number;
+  applicationName: string;
+
+  /**
+   * null means ALL / lifetime.
+   */
+  from: string | null;
+
+  totalExecutions: number;
+  passedExecutions: number;
+  failedExecutions: number;
+  inProgressExecutions: number;
+
+  dailyExecutions: ProjectDailyExecutionTrend[];
+  executionBlocks: ProjectExecutionBlock[];
+  passRateTrend: ProjectPassRateTrend[];
+}
 
 export interface Application {
   id: number;
@@ -11,11 +120,13 @@ export interface Application {
   description?: string;
 }
 
+
 export interface Environment {
   id: number;
   name: string;
   description?: string;
 }
+
 
 export interface TestExecution {
   id: number;
@@ -40,6 +151,7 @@ export interface TestExecution {
   inProgressTestCaseCount?: number;
 }
 
+
 export interface TestSuite {
   id: number;
   testExecutionId: number;
@@ -56,6 +168,7 @@ export interface TestSuite {
   testCasesCountWithWarnings?: number;
 }
 
+
 export interface TestCase {
   id: number;
   testSuiteId: number;
@@ -71,7 +184,9 @@ export interface TestCase {
   passedTestStepCount?: number;
   failedTestStepCount?: number;
   testStepCountWithWarnings?: number;
+  referenceId?: string;
 }
+
 
 export interface TestStepAttachment {
   id?: number;
@@ -80,6 +195,7 @@ export interface TestStepAttachment {
   fileName: string;
   attachmentRelativePath?: string;
 }
+
 
 export interface TestStep {
   id: number;

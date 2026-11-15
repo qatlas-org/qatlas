@@ -34,6 +34,8 @@ export function firstIndexWithStatus(steps: TestStep[], status: ExecutionStatus)
  * stable, readable stand-in from the numeric id so the UI has something to
  * show where the design calls for a reference code. Flagged in the README
  * as a placeholder pending a real backend field if one gets added later. */
-export function deriveReference(testCase: Pick<TestCase, 'id'>): string {
-  return `TC-${testCase.id}`;
+export function deriveReference(
+    testCase: Pick<TestCase, 'referenceId'>
+): string {
+  return testCase.referenceId?.trim() || '—';
 }

@@ -47,6 +47,8 @@ public class TestStepRestController {
 //            @Validated(ValidationGroups.Create.class)
             @RequestBody
             final TestStepVO testStepVO) {
+        System.out.println(">>> TEST-STEP CREATE REACHED <<<");
+
         TestStepVO testStepSaved = testStepService.create(testStepVO);
         createTestStepAttachments(testStepSaved.getId(), testStepVO.getAttachments());
         return testStepSaved;
