@@ -17,6 +17,10 @@ The version for **all** of them is in `.mvn/maven.config`:
 
 Change only this line when you start a new version.
 
+Every image tag is **multi-arch**: it holds an `amd64` image (normal Intel/AMD PCs
+and servers) and an `arm64` image (ARM servers, e.g. Oracle Cloud Ampere A1).
+`docker pull` picks the right one by itself, so nothing changes for users.
+
 ---
 
 ## Part 1 – GitHub Actions (main way)
