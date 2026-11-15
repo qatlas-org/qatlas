@@ -41,3 +41,7 @@ logs/
 application-local.yml
 application-local.properties
 /mysql/
+
+# ===== Maven wrapper jar (downloaded automatically by ./mvnw) / flatten plugin =====
+.mvn/wrapper/maven-wrapper.jar
+.flattened-pom.xml

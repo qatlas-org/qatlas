@@ -1,0 +1,198 @@
+# QAtlas - build, push Docker images and publish the api-client
+#
+# What this does
+#   * Every push / pull request : build everything (no publishing). Catches broken builds early.
+#   * "Run workflow" button     : build, then push Docker images and/or publish api-client
+#                                 for the branch you choose (for example 1.1.0-SNAPSHOT).
+#   * Push a git tag (e.g. 1.1.0): build, push Docker images (+ "latest") and publish api-client.
+#
+# The version always comes from .mvn/maven.config  (-Drevision=X.Y.Z[-SNAPSHOT]).
+#
+# Required repository secrets (Settings > Secrets and variables > Actions):
+#   DOCKERHUB_USERNAME   Docker Hub user that can push to the "qatlas" namespace
+#   DOCKERHUB_TOKEN      Docker Hub access token (Read & Write)
+#   CENTRAL_USERNAME     Sonatype Central Portal user token - username part
+#   CENTRAL_PASSWORD     Sonatype Central Portal user token - password part
+#   GPG_PRIVATE_KEY      ASCII-armored private key (gpg --armor --export-secret-keys KEYID)
+#   GPG_PASSPHRASE       Passphrase of that GPG key
+
+name: Build and publish
+
+on:
+  push:
+    branches: ["**"]
+    tags: ["[0-9]+.[0-9]+.[0-9]+*"]
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      push_images:
+        description: "Push Docker images to Docker Hub"
+        type: boolean
+        default: true
+      tag_latest:
+        description: "Also tag the images as 'latest' (only for a real release!)"
+        type: boolean
+        default: false
+      publish_client:
+        description: "Publish api-client (qatlas-client) to Maven Central"
+        type: boolean
+        default: false
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  DOCKER_NAMESPACE: qatlas
+
+jobs:
+  version:
+    name: Read version
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.v.outputs.version }}
+      snapshot: ${{ steps.v.outputs.snapshot }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: v
+        name: Read version from .mvn/maven.config
+        run: |
+          VERSION=$(sed -n 's/.*-Drevision=\([^ ]*\).*/\1/p' .mvn/maven.config | tr -d '\r')
+          if [ -z "$VERSION" ]; then
+            echo "::error::Could not read -Drevision from .mvn/maven.config"
+            exit 1
+          fi
+          if [ "${GITHUB_REF_TYPE}" = "tag" ] && [ "${GITHUB_REF_NAME}" != "$VERSION" ]; then
+            echo "::error::Tag '${GITHUB_REF_NAME}' does not match version '$VERSION' in .mvn/maven.config"
+            exit 1
+          fi
+          case "$VERSION" in *-SNAPSHOT) SNAPSHOT=true ;; *) SNAPSHOT=false ;; esac
+          echo "version=$VERSION"   >> "$GITHUB_OUTPUT"
+          echo "snapshot=$SNAPSHOT" >> "$GITHUB_OUTPUT"
+          echo "### QAtlas version: \`$VERSION\`" >> "$GITHUB_STEP_SUMMARY"
+
+  images:
+    name: Build (and push) Docker images
+    needs: version
+    runs-on: ubuntu-latest
+    env:
+      VERSION: ${{ needs.version.outputs.version }}
+      # Push only on a tag, or when "Run workflow" was used with push_images = true
+      PUSH: ${{ github.ref_type == 'tag' || (github.event_name == 'workflow_dispatch' && inputs.push_images) }}
+      # "latest" only for a non-SNAPSHOT tag, or when asked for explicitly
+      LATEST: ${{ (github.ref_type == 'tag' && needs.version.outputs.snapshot == 'false') || (github.event_name == 'workflow_dispatch' && inputs.tag_latest) }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+
+      # The classic frontend image copies files that Maven produces
+      # (dist/frontend, nginx-oci/public/classic). Build it first.
+      # api-client is built too, so a broken client fails the build early.
+      - name: Maven build (frontend + api-client)
+        run: mvn -B -ntp -DskipTests -pl frontend,api-client package
+
+      - name: Image tags
+        id: tags
+        run: |
+          for img in backend frontend qatlas-ui; do
+            T="${DOCKER_NAMESPACE}/${img}:${VERSION}"
+            if [ "$LATEST" = "true" ]; then T="$T,${DOCKER_NAMESPACE}/${img}:latest"; fi
+            key=$(echo "$img" | tr '-' '_')
+            echo "${key}=$T" >> "$GITHUB_OUTPUT"
+          done
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        if: env.PUSH == 'true'
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: backend image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: backend/Dockerfile
+          platforms: linux/amd64
+          push: ${{ env.PUSH == 'true' }}
+          tags: ${{ steps.tags.outputs.backend }}
+          cache-from: type=gha,scope=backend
+          cache-to: type=gha,mode=max,scope=backend
+
+      - name: frontend (classic UI) image
+        uses: docker/build-push-action@v6
+        with:
+          context: frontend
+          platforms: linux/amd64
+          push: ${{ env.PUSH == 'true' }}
+          tags: ${{ steps.tags.outputs.frontend }}
+          cache-from: type=gha,scope=frontend
+          cache-to: type=gha,mode=max,scope=frontend
+
+      - name: qatlas-ui (React UI) image
+        uses: docker/build-push-action@v6
+        with:
+          context: qatlas-ui
+          platforms: linux/amd64
+          push: ${{ env.PUSH == 'true' }}
+          tags: ${{ steps.tags.outputs.qatlas_ui }}
+          build-args: |
+            QATLAS_UI_VERSION=${{ env.VERSION }}
+            QATLAS_API_CLIENT_VERSION=${{ env.VERSION }}
+          cache-from: type=gha,scope=qatlas-ui
+          cache-to: type=gha,mode=max,scope=qatlas-ui
+
+      - name: Summary
+        run: |
+          {
+            echo "### Docker images"
+            if [ "$PUSH" = "true" ]; then echo "Pushed to Docker Hub:"; else echo "Built only (not pushed):"; fi
+            echo "- \`${{ steps.tags.outputs.backend }}\`"
+            echo "- \`${{ steps.tags.outputs.frontend }}\`"
+            echo "- \`${{ steps.tags.outputs.qatlas_ui }}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  api-client:
+    name: Publish api-client to Maven Central
+    needs: [version, images]
+    if: github.ref_type == 'tag' || (github.event_name == 'workflow_dispatch' && inputs.publish_client)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+          # Writes ~/.m2/settings.xml with a <server id="central"> entry
+          server-id: central
+          server-username: CENTRAL_USERNAME
+          server-password: CENTRAL_PASSWORD
+          gpg-private-key: ${{ secrets.GPG_PRIVATE_KEY }}
+          gpg-passphrase: MAVEN_GPG_PASSPHRASE
+
+      - name: Deploy qatlas-client
+        env:
+          CENTRAL_USERNAME: ${{ secrets.CENTRAL_USERNAME }}
+          CENTRAL_PASSWORD: ${{ secrets.CENTRAL_PASSWORD }}
+          MAVEN_GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+        run: mvn -B -ntp -DskipTests -pl api-client deploy
+
+      - name: Summary
+        run: |
+          {
+            echo "### api-client"
+            echo "Uploaded \`org.qatlas:qatlas-client:${{ needs.version.outputs.version }}\`."
+            if [ "${{ needs.version.outputs.snapshot }}" = "false" ]; then
+              echo "autoPublish is false: open https://central.sonatype.com/publishing/deployments and press **Publish**."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
