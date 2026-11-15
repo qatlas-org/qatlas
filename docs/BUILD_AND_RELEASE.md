@@ -17,6 +17,10 @@ The version for **all** of them is in `.mvn/maven.config`:
 
 Change only this line when you start a new version.
 
+Every image tag is **multi-arch**: it holds an `amd64` image (normal Intel/AMD PCs
+and servers) and an `arm64` image (ARM servers, e.g. Oracle Cloud Ampere A1).
+`docker pull` picks the right one by itself, so nothing changes for users.
+
 ---
 
 ## Part 1 – GitHub Actions (main way)
@@ -40,7 +44,7 @@ and add:
 
 | Secret | Value | Where to get it |
 |---|---|---|
-| `DOCKERHUB_USERNAME` | Docker Hub user that can push to `qatlas/*` | – |
+| `DOCKERHUB_USERNAME` | Docker Hub user, e.g. `qatlas`. Add it under the **Variables** tab, not Secrets (a username is not secret, and as a secret GitHub would hide every "qatlas" in the logs as `***`). | – |
 | `DOCKERHUB_TOKEN` | Access token, permission **Read & Write** | hub.docker.com → Account settings → Personal access tokens |
 | `CENTRAL_USERNAME` | User token – username part | central.sonatype.com → your account → Generate User Token |
 | `CENTRAL_PASSWORD` | User token – password part | same place |

@@ -1,5 +1,7 @@
 # Build stage
-FROM node:20-alpine AS build
+# Build stage always runs on the build machine's own CPU (fast, no emulation).
+# The built HTML/JS files are the same for amd64 and arm64.
+FROM --platform=$BUILDPLATFORM node:20-alpine AS build
 
 WORKDIR /app
 

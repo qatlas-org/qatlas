@@ -38,24 +38,34 @@ echo "==> QAtlas version $VERSION (push=$PUSH latest=$LATEST client=$CLIENT)"
 echo "==> Maven build (frontend + api-client)"
 $MVN -B -ntp -DskipTests -pl frontend,api-client package
 
+PLATFORMS=linux/amd64,linux/arm64
+BUILDER=qatlas-multiarch
+
+if [ "$PUSH" = true ]; then
+  # Multi-arch push needs a buildx builder with the docker-container driver.
+  docker buildx inspect "$BUILDER" >/dev/null 2>&1 \
+    || docker buildx create --name "$BUILDER" --driver docker-container >/dev/null
+fi
+
 build() { # $1=image name, rest = docker build args
   local img=$1; shift
-  echo "==> docker build $NS/$img:$VERSION"
-  docker build -t "$NS/$img:$VERSION" "$@"
-  if [ "$LATEST" = true ]; then docker tag "$NS/$img:$VERSION" "$NS/$img:latest"; fi
+  local tags=(-t "$NS/$img:$VERSION")
+  if [ "$LATEST" = true ]; then tags+=(-t "$NS/$img:latest"); fi
+  if [ "$PUSH" = true ]; then
+    # Same as GitHub: one tag with amd64 + arm64, pushed directly.
+    # (A plain "docker push" would replace it with an amd64-only image.)
+    echo "==> build + push $NS/$img:$VERSION ($PLATFORMS)"
+    docker buildx build --builder "$BUILDER" --platform "$PLATFORMS" --push "${tags[@]}" "$@"
+  else
+    echo "==> docker build $NS/$img:$VERSION (this PC only, not pushed)"
+    docker build "${tags[@]}" "$@"
+  fi
 }
 
 build backend   -f backend/Dockerfile .
 build frontend  frontend
 build qatlas-ui --build-arg "QATLAS_UI_VERSION=$VERSION" \
                 --build-arg "QATLAS_API_CLIENT_VERSION=$VERSION" qatlas-ui
-
-if [ "$PUSH" = true ]; then
-  for img in backend frontend qatlas-ui; do
-    docker push "$NS/$img:$VERSION"
-    if [ "$LATEST" = true ]; then docker push "$NS/$img:latest"; fi
-  done
-fi
 
 if [ "$CLIENT" = true ]; then
   echo "==> Publishing qatlas-client $VERSION to Maven Central"
