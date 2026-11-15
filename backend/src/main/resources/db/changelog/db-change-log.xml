@@ -279,6 +279,11 @@
 				columnDataType="BOOLEAN"
 				defaultNullValue="false"/>
 	</changeSet>
-
+	<changeSet id="widen-attachment-name-255" author="qatlas">
+		<modifyDataType schemaName="reports_db" tableName="test_step_attachment"
+						columnName="ATTACHMENT_NAME" newDataType="VARCHAR(255)"/>
+		<addNotNullConstraint schemaName="reports_db" tableName="test_step_attachment"
+							  columnName="ATTACHMENT_NAME" columnDataType="VARCHAR(255)"/>
+	</changeSet>
 
 </databaseChangeLog>

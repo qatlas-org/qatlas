@@ -39,7 +39,7 @@ public class TestStepAttachmentVO {
     private byte[] fileContent;
 
     @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
-    private boolean fileContentBase64Encoded;
+    private Boolean fileContentBase64Encoded;
 
     @JsonProperty(access = JsonProperty.Access.READ_ONLY)
     private String attachmentRelativePath;
@@ -85,10 +85,10 @@ public class TestStepAttachmentVO {
     }
 
     public boolean isFileContentBase64Encoded() {
-        return fileContentBase64Encoded;
+        return Boolean.TRUE.equals(fileContentBase64Encoded);
     }
 
-    public void setFileContentBase64Encoded(boolean fileContentBase64Encoded) {
+    public void setFileContentBase64Encoded(Boolean fileContentBase64Encoded) {
         this.fileContentBase64Encoded = fileContentBase64Encoded;
     }
 
