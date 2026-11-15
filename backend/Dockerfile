@@ -2,7 +2,9 @@
 # multi-module Maven project and needs the parent pom to resolve.
 # Build with:  docker build -f backend/Dockerfile -t qatlas/backend:1.0.0 .
 
-FROM maven:3.9-eclipse-temurin-21 AS build
+# Build stage always runs on the build machine's own CPU (fast, no emulation).
+# The jar is the same for amd64 and arm64.
+FROM --platform=$BUILDPLATFORM maven:3.9-eclipse-temurin-21 AS build
 WORKDIR /workspace
 COPY .mvn .mvn
 # Copy just the poms first so Docker can cache the dependency download layer

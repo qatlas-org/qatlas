@@ -38,24 +38,34 @@ Write-Host "==> QAtlas version $Version (push=$Push latest=$Latest client=$Clien
 Write-Host "==> Maven build (frontend + api-client)"
 Run $Mvn @("-B", "-ntp", "-DskipTests", "-pl", "frontend,api-client", "package")
 
+$Platforms = "linux/amd64,linux/arm64"
+$Builder = "qatlas-multiarch"
+
+if ($Push) {
+    # Multi-arch push needs a buildx builder with the docker-container driver.
+    docker buildx inspect $Builder *> $null
+    if ($LASTEXITCODE -ne 0) { Run "docker" @("buildx", "create", "--name", $Builder, "--driver", "docker-container") }
+}
+
 function Build-Image {
     param([string]$Img, [string[]]$DockerArgs)
-    Write-Host "==> docker build $Ns/${Img}:$Version"
-    Run "docker" (@("build", "-t", "$Ns/${Img}:$Version") + $DockerArgs)
-    if ($Latest) { Run "docker" @("tag", "$Ns/${Img}:$Version", "$Ns/${Img}:latest") }
+    $tags = @("-t", "$Ns/${Img}:$Version")
+    if ($Latest) { $tags += @("-t", "$Ns/${Img}:latest") }
+    if ($Push) {
+        # Same as GitHub: one tag with amd64 + arm64, pushed directly.
+        # (A plain "docker push" would replace it with an amd64-only image.)
+        Write-Host "==> build + push $Ns/${Img}:$Version ($Platforms)"
+        Run "docker" (@("buildx", "build", "--builder", $Builder, "--platform", $Platforms, "--push") + $tags + $DockerArgs)
+    } else {
+        Write-Host "==> docker build $Ns/${Img}:$Version (this PC only, not pushed)"
+        Run "docker" (@("build") + $tags + $DockerArgs)
+    }
 }
 
 Build-Image "backend"   @("-f", "backend/Dockerfile", ".")
 Build-Image "frontend"  @("frontend")
 Build-Image "qatlas-ui" @("--build-arg", "QATLAS_UI_VERSION=$Version",
                           "--build-arg", "QATLAS_API_CLIENT_VERSION=$Version", "qatlas-ui")
-
-if ($Push) {
-    foreach ($img in @("backend", "frontend", "qatlas-ui")) {
-        Run "docker" @("push", "$Ns/${img}:$Version")
-        if ($Latest) { Run "docker" @("push", "$Ns/${img}:latest") }
-    }
-}
 
 if ($Client) {
     Write-Host "==> Publishing qatlas-client $Version to Maven Central"
