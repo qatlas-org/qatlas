@@ -9,7 +9,7 @@
 # The version always comes from .mvn/maven.config  (-Drevision=X.Y.Z[-SNAPSHOT]).
 #
 # Required repository secrets (Settings > Secrets and variables > Actions):
-#   DOCKERHUB_USERNAME   Docker Hub user that can push to the "qatlas" namespace
+#   (variable, not secret) DOCKERHUB_USERNAME  Docker Hub user, e.g. qatlas  -> Variables tab
 #   DOCKERHUB_TOKEN      Docker Hub access token (Read & Write)
 #   CENTRAL_USERNAME     Sonatype Central Portal user token - username part
 #   CENTRAL_PASSWORD     Sonatype Central Portal user token - password part
@@ -113,7 +113,7 @@ jobs:
         if: env.PUSH == 'true'
         uses: docker/login-action@v4
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          username: ${{ vars.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: backend image

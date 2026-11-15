@@ -40,7 +40,7 @@ and add:
 
 | Secret | Value | Where to get it |
 |---|---|---|
-| `DOCKERHUB_USERNAME` | Docker Hub user that can push to `qatlas/*` | – |
+| `DOCKERHUB_USERNAME` | Docker Hub user, e.g. `qatlas`. Add it under the **Variables** tab, not Secrets (a username is not secret, and as a secret GitHub would hide every "qatlas" in the logs as `***`). | – |
 | `DOCKERHUB_TOKEN` | Access token, permission **Read & Write** | hub.docker.com → Account settings → Personal access tokens |
 | `CENTRAL_USERNAME` | User token – username part | central.sonatype.com → your account → Generate User Token |
 | `CENTRAL_PASSWORD` | User token – password part | same place |
