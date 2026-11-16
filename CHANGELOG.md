@@ -24,3 +24,4 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   container-based deployment.
 
 [1.0.0]: https://github.com/qatlas-org/qatlas/releases/tag/v1.0.0
+## [1.1.2] block from step 12 to CHANGELOG.md, above ## [1.0.0] - 2026-09-04.

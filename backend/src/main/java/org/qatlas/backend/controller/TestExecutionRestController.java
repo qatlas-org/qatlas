@@ -18,6 +18,8 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
+import org.qatlas.backend.enums.ExportFormat;
+import org.qatlas.backend.service.TestCaseExportService;
 
 import jakarta.validation.constraints.Min;
 import java.time.LocalDateTime;
@@ -32,6 +34,8 @@ import static org.qatlas.backend.Constants.SLASH;
 public class TestExecutionRestController {
 
     private TestExecutionService testExecutionService;
+    private TestCaseExportService testCaseExportService;
+
 
     private TestSuiteService testSuiteService;
 
@@ -41,11 +45,14 @@ public class TestExecutionRestController {
     public TestExecutionRestController(
             TestExecutionService testExecutionService,
             TestSuiteService testSuiteService,
-            TestCaseService testCaseService) {
+            TestCaseService testCaseService,
+            TestCaseExportService testCaseExportService) {
         this.testExecutionService = testExecutionService;
         this.testSuiteService = testSuiteService;
         this.testCaseService = testCaseService;
+        this.testCaseExportService = testCaseExportService;
     }
+
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
@@ -108,6 +115,38 @@ public class TestExecutionRestController {
             @Schema(enumAsRef = true)
             final ExecutionStatus[] executionStatuses) {
         return testCaseService.getAll(null, testExecutionId, executionStatuses);
+    }
+
+    @GetMapping(path = "/{testExecutionId}/test-cases/export")
+    @Operation(
+            summary = "Export the test cases of a test execution as CSV or Excel (.xlsx)",
+            description = "Same filters as getTestExecutionTestCases, plus an optional free-text search "
+                    + "on test case / test suite name. Without filters all test cases are exported.",
+            operationId = "exportTestExecutionTestCases"
+    )
+    public ResponseEntity<StreamingResponseBody> exportTestCases(
+            @PathVariable
+            @Min(1)
+            final Long testExecutionId,
+            @RequestParam(name = "format", required = false, defaultValue = "CSV")
+            @Schema(enumAsRef = true)
+            final ExportFormat format,
+            @RequestParam(name = "status", required = false)
+            @Schema(enumAsRef = true)
+            final ExecutionStatus[] executionStatuses,
+            @RequestParam(name = "search", required = false)
+            final String search) {
+        // Load before streaming so a missing execution returns a normal 404
+        // instead of a broken half-written file.
+        List<TestCaseVO> testCases =
+                testCaseExportService.findTestCases(testExecutionId, executionStatuses, search);
+        StreamingResponseBody stream = output -> testCaseExportService.write(testCases, format, output);
+        String fileName = "TestExecution_" + testExecutionId + "_test-cases." + format.getFileExtension();
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + fileName + "\"")
+                .header(HttpHeaders.ACCESS_CONTROL_EXPOSE_HEADERS, HttpHeaders.CONTENT_DISPOSITION)
+                .contentType(MediaType.parseMediaType(format.getContentType()))
+                .body(stream);
     }
 
     @PutMapping(path = "/archive/{deleteAttachmentsOnly}")

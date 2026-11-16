@@ -2,7 +2,7 @@ import { useMemo, useRef, useState } from 'react';
 import type { PointerEvent as ReactPointerEvent } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
-import { Play, MessageSquare, Search } from 'lucide-react';
+import { Play, MessageSquare, Search, Loader2 } from 'lucide-react';
 import { useExecution, useExecutionTestCases } from '../hooks/useQueries';
 import { LoadingState, ErrorState, Card } from '../components/Primitives';
 import { InfoPanel } from '../components/InfoPanel';
@@ -14,6 +14,9 @@ import { QuickNav } from '../components/QuickNav';
 import { formatDateTime, formatDuration } from '../lib/format';
 import { deriveReference } from '../lib/testCaseStats';
 import type { ExecutionStatus } from '../types/domain';
+import { api, type TestCaseExportFormat } from '../api/client';
+import { downloadBlob, filenameFromContentDisposition, readBlobError } from '../lib/download';
+
 
 const CHART_COLORS: Record<string, string> = {
   PASSED: 'var(--color-status-passed)',
@@ -97,6 +100,39 @@ export function ExecutionDetailPage() {
       });
     }
   }
+  const [exporting, setExporting] = useState<TestCaseExportFormat | null>(null);
+
+  async function exportTestCases(format: TestCaseExportFormat, onlyFiltered: boolean) {
+    if (exporting) return;
+    setExporting(format);
+    try {
+      const response = await api.executions.exportTestCases(
+          executionId,
+          format,
+          onlyFiltered
+              ? {
+                statuses: statusFilter !== 'ALL' ? [statusFilter] : undefined,
+                search: query,
+              }
+              : undefined
+      );
+      const fallback = `TestExecution_${executionId}_test-cases.${format === 'XLSX' ? 'xlsx' : 'csv'}`;
+      downloadBlob(
+          response.data,
+          filenameFromContentDisposition(response.headers['content-disposition'], fallback)
+      );
+    } catch (error) {
+      const detail = await readBlobError(error);
+      alert(`Export failed${detail ? `: ${detail}` : '. Please try again.'}`);
+    } finally {
+      setExporting(null);
+    }
+  }
+
+  // The backend has no SKIPPED status yet (the UI keeps it for the classic
+  // design), so a "filtered" export is only offered for real backend statuses.
+  const canExportFiltered =
+      (statusFilter !== 'ALL' || query.trim() !== '') && statusFilter !== 'SKIPPED';
 
   const filteredCases = useMemo(() => {
     let list = testCases ?? [];
@@ -364,10 +400,22 @@ export function ExecutionDetailPage() {
                     <option value="PROGRESS">In Progress</option>
                     <option value="WARNING">Warning</option>
                   </select>
+                  {exporting && (
+                      <span className="flex items-center gap-1 text-xs text-[var(--color-ink-muted)]">
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        Exporting {exporting === 'XLSX' ? 'Excel' : 'CSV'}…
+                      </span>
+                  )}
                   <KebabMenu
                       items={[
-                        { label: 'Export as CSV (all rows)', onClick: () => alert('Wire to a real export endpoint') },
-                        { label: 'Export as Excel (all rows)', onClick: () => alert('Wire to a real export endpoint') },
+                        { label: 'Export as CSV (all rows)', onClick: () => void exportTestCases('CSV', false) },
+                        { label: 'Export as Excel (all rows)', onClick: () => void exportTestCases('XLSX', false) },
+                        ...(canExportFiltered
+                            ? [
+                              { label: 'Export as CSV (filtered rows)', onClick: () => void exportTestCases('CSV', true) },
+                              { label: 'Export as Excel (filtered rows)', onClick: () => void exportTestCases('XLSX', true) },
+                            ]
+                            : []),
                         'divider',
                         { label: 'Screenshot current view (image)', onClick: () => alert('Implement with html-to-image') },
                       ]}
