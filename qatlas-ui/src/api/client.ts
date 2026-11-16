@@ -18,6 +18,8 @@ import { getToken, clearToken } from '../lib/auth';
 // Never hardcode a host here — that's what breaks when this moves between envs.
 const baseURL = import.meta.env.VITE_API_BASE_URL ?? '';
 
+export type TestCaseExportFormat = 'CSV' | 'XLSX';
+
 export const http = axios.create({
     baseURL: `${baseURL}/rs`,
     timeout: 30_000,
@@ -97,7 +99,25 @@ export const api = {
                     paramsSerializer: { indexes: null },
                 })
                 .then((r) => r.data),
-        // Requires admin auth (see AdminOnlyFilter on the backend). deleteAttachmentsOnly=true
+                // Server-side export of the execution's test cases (streamed CSV / .xlsx).
+                // Without statuses/search every test case of the execution is exported.
+                exportTestCases: (
+                    executionId: number,
+                    format: TestCaseExportFormat,
+                    filters?: { statuses?: ExecutionStatus[]; search?: string }
+                ) =>
+                    http.get<Blob>(`/test-execution/${executionId}/test-cases/export`, {
+                        params: {
+                            format,
+                            ...(filters?.statuses?.length ? { status: filters.statuses } : {}),
+                            ...(filters?.search?.trim() ? { search: filters.search.trim() } : {}),
+                        },
+                        paramsSerializer: { indexes: null },
+                        responseType: 'blob',
+                        // big executions can take a while to build on the server
+                        timeout: 5 * 60_000,
+                    }),
+                // Requires admin auth (see AdminOnlyFilter on the backend). deleteAttachmentsOnly=true
         // removes just the screenshots; false fully archives (soft-deletes) the execution(s).
         archive: (executionIds: number[], deleteAttachmentsOnly: boolean) =>
             http.put<void>(`/test-execution/archive/${deleteAttachmentsOnly}`, executionIds),
